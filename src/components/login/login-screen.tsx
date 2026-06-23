@@ -83,7 +83,7 @@ export function LoginScreen () {
               keyboardVisible ? styles.sheetCompact : null,
               {
                 paddingBottom: keyboardVisible
-                  ? 0
+                  ? 12
                   : Math.max(insets.bottom, 16) + 8
               }
             ]}
