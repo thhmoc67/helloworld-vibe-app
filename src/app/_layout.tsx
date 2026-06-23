@@ -1,17 +1,14 @@
+import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
 import { FontAssets } from '@/constants/fonts';
+import { AppProviders } from '@/providers/app-providers';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(FontAssets);
 
   useEffect(() => {
@@ -25,9 +22,15 @@ export default function TabLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <AppProviders>
+      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+        <Stack.Screen name="index" options={{ animation: 'none' }} />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="otp" />
+        <Stack.Screen name="select-city" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="menu" options={{ animation: 'slide_from_right' }} />
+      </Stack>
+    </AppProviders>
   );
 }
