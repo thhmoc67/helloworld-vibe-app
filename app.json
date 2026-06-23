@@ -1,22 +1,29 @@
 {
   "expo": {
-    "name": "helloworld-vibe-app",
-    "slug": "helloworld-vibe-app",
-    "version": "1.0.0",
+    "name": "HelloWorld",
+    "slug": "helloworld",
+    "version": "4.8.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "helloworldvibeapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "thehelloworld",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "owner": "dayal-thehelloworld",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "supportsTablet": true,
+      "bundleIdentifier": "org.HelloWorldTechnologiesIndiaPvtLtd.react.native.HelloWorld",
+      "buildNumber": "151"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "package": "com.thehelloworld",
+      "versionCode": 250,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -24,14 +31,21 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-dev-client",
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
           "android": {
             "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
+            "imageWidth": 200
+          },
+          "ios": {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 200
           }
         }
       ]
@@ -39,6 +53,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cb885a4e-f18b-4d7e-8a45-2cd1fe69a26c"
+      }
     }
   }
 }
