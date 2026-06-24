@@ -19,6 +19,8 @@ import { Typography } from '@/components/ui/typography';
 import { ImageAssets } from '@/constants/assets';
 import palette from '@/constants/palette';
 import { useVerifyOtpMutation } from '@/queries/use-auth';
+import { useTenantStore } from '@/stores/tenant-store';
+import { getDefaultTabRoute } from '@/utils/tenant-routing';
 
 export default function OtpScreen() {
   const router = useRouter();
@@ -39,7 +41,9 @@ export default function OtpScreen() {
 
     try {
       await verifyOtp.mutateAsync({ mobile, otp });
-      router.replace('/(tabs)/home');
+      await useTenantStore.getState().fetchProfile();
+      const isTenant = Boolean(useTenantStore.getState().profile?.bookingId);
+      router.replace(getDefaultTabRoute(isTenant));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Please enter correct OTP');
     }

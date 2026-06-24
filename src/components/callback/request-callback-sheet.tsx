@@ -192,7 +192,6 @@ export function RequestCallbackSheet({
             placeholder="Full name"
             autoCapitalize="words"
             error={fieldErrors.name}
-            autoFocus
           />
 
           <TextField

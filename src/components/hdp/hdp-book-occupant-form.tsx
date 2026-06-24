@@ -66,7 +66,6 @@ export function HdpBookOccupantForm({
           autoCapitalize="words"
           placeholder="Enter first name"
           error={errors?.firstName}
-          autoFocus
         />
         <TextField
           label="Last Name"

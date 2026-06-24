@@ -1,0 +1,343 @@
+import { Image } from 'expo-image';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { TenantScreenHeader } from '@/components/tenant/tenant-screen-header';
+import { Button } from '@/components/ui/button';
+import { Typography } from '@/components/ui/typography';
+import { getHwEventDetail, postBookEvent } from '@/api/community';
+import { EVENT_FALLBACK_IMAGE } from '@/constants/community';
+import palette from '@/constants/palette';
+import { Radius } from '@/constants/theme';
+import type { CommunityEventDetailResponse } from '@/types/community';
+import { priceFormatter } from '@/utils/tenant-format';
+import { useTenantProfile } from '@/stores/tenant-store';
+
+function formatEventDateTime(value?: string) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const day = date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: '2-digit' });
+  const time = date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return { day, time };
+}
+
+function isEventEnded(endDate?: string) {
+  if (!endDate) return false;
+  const end = new Date(endDate);
+  return !Number.isNaN(end.getTime()) && end < new Date();
+}
+
+export function CommunityEventDetailScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const profile = useTenantProfile();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const [event, setEvent] = useState<CommunityEventDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [registering, setRegistering] = useState(false);
+
+  const fetchEvent = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    const result = await getHwEventDetail(Number(id));
+    setEvent(result.data);
+    setLoading(false);
+  }, [id]);
+
+  useEffect(() => {
+    void fetchEvent();
+  }, [fetchEvent]);
+
+  function openMaps() {
+    const location = event?.details.location;
+    if (!location?.lat || !location?.long) return;
+    const coords = `${location.lat},${location.long}`;
+    const url =
+      Platform.OS === 'ios'
+        ? `http://maps.apple.com/?daddr=${coords}`
+        : `geo:${coords}?q=${coords}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Unable to open maps');
+    });
+  }
+
+  async function handleRegister() {
+    if (!event?.details || !profile?.userInfo) return;
+    const { email, mobile, name } = profile.userInfo;
+    if (!email || !mobile || !name) {
+      Alert.alert('Complete your profile before registering');
+      return;
+    }
+
+    setRegistering(true);
+    const { success, message } = await postBookEvent({
+      id: event.details.id,
+      email,
+      name,
+      mobile,
+      seatsBooked: 1,
+    });
+    setRegistering(false);
+
+    if (success) {
+      router.push({
+        pathname: '/community-registration-confirmed',
+        params: {
+          id: String(event.details.id),
+          name: event.details.name,
+        },
+      });
+      return;
+    }
+
+    Alert.alert('Registration failed', message ?? 'Please try again');
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator color={palette.lime[700]} />
+      </View>
+    );
+  }
+
+  if (!event?.details) {
+    return (
+      <View style={styles.root}>
+        <TenantScreenHeader title="Event" onBack={() => router.back()} />
+        <View style={styles.centered}>
+          <Typography variant="text" size="sm" color={palette.gray[600]}>
+            Event not found
+          </Typography>
+        </View>
+      </View>
+    );
+  }
+
+  const details = event.details;
+  const start = formatEventDateTime(details.event_start_date ?? details.start_date);
+  const ended = isEventEnded(details.event_end_date);
+  const amount = event.paymentData?.total ?? details.amount ?? 0;
+  const attendees = details.people_attending ?? details.attendees_count ?? 0;
+  const venue = [details.location?.propertyName, details.location?.street].filter(Boolean).join(', ');
+
+  return (
+    <View style={styles.root}>
+      <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+        <View style={styles.hero}>
+          <Image
+            source={{ uri: details.display_image || EVENT_FALLBACK_IMAGE }}
+            style={styles.heroImage}
+            contentFit="cover"
+          />
+          <View style={styles.heroHeader}>
+            <TenantScreenHeader title="" onBack={() => router.back()} style={styles.transparentHeader} />
+          </View>
+        </View>
+
+        <View style={styles.body}>
+          <Typography variant="text" size="xl" weight="medium">
+            {details.name}
+          </Typography>
+
+          <View style={styles.card}>
+            <Typography variant="label" size="xs" color={palette.gray[500]} style={styles.cardLabel}>
+              Event Details
+            </Typography>
+            <View style={styles.dateRow}>
+              {typeof start !== 'string' ? (
+                <>
+                  <View style={styles.dateBadge}>
+                    <Typography variant="text" size="lg" weight="medium">
+                      {new Date(details.event_start_date ?? details.start_date ?? '').getDate()
+                        .toString()
+                        .padStart(2, '0')}
+                    </Typography>
+                    <Typography variant="label" size="xs" color={palette.gray[500]}>
+                      {new Date(details.event_start_date ?? details.start_date ?? '')
+                        .toLocaleDateString('en-IN', { month: 'short' })
+                        .toUpperCase()}
+                    </Typography>
+                  </View>
+                  <View style={styles.dateCopy}>
+                    <Typography variant="text" size="sm" weight="medium">
+                      {start.day}
+                    </Typography>
+                    <Typography variant="text" size="sm" color={palette.gray[600]}>
+                      {start.time}
+                    </Typography>
+                  </View>
+                </>
+              ) : null}
+            </View>
+            {venue ? (
+              <View style={styles.venueBlock}>
+                <Typography variant="label" size="xs" color={palette.gray[500]}>
+                  Venue
+                </Typography>
+                <Typography variant="text" size="sm" weight="medium">
+                  {venue}
+                </Typography>
+                {details.location?.lat ? (
+                  <Pressable onPress={openMaps} accessibilityRole="link">
+                    <Typography variant="text" size="sm" color={palette.blue[700]}>
+                      Show on Google Maps
+                    </Typography>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+
+          {details.description ? (
+            <View style={styles.card}>
+              <Typography variant="label" size="xs" color={palette.gray[500]} style={styles.cardLabel}>
+                About the Event
+              </Typography>
+              <Typography variant="text" size="sm" color={palette.gray[700]} style={styles.description}>
+                {details.description}
+              </Typography>
+            </View>
+          ) : null}
+
+          {attendees > 0 ? (
+            <View style={styles.card}>
+              <Typography variant="label" size="xs" color={palette.gray[500]} style={styles.cardLabel}>
+                Who's Attending
+              </Typography>
+              <Typography variant="text" size="sm" weight="medium">
+                {attendees} attending
+              </Typography>
+            </View>
+          ) : null}
+
+          {details.what_to_bring ? (
+            <View style={styles.card}>
+              <Typography variant="label" size="xs" color={palette.gray[500]} style={styles.cardLabel}>
+                What to bring
+              </Typography>
+              <Typography variant="text" size="sm" color={palette.gray[700]}>
+                {details.what_to_bring}
+              </Typography>
+            </View>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      {!ended ? (
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={styles.feeRow}>
+            <Typography variant="text" size="sm" color={palette.gray[600]}>
+              Event Registration Fee
+            </Typography>
+            <Typography variant="text" size="sm" weight="medium">
+              {amount > 0 ? `${priceFormatter(amount)} +GST` : 'FREE'}
+            </Typography>
+          </View>
+          <Button label="Register" loading={registering} onPress={handleRegister} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: palette.gray[50],
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.gray[50],
+  },
+  hero: {
+    height: 280,
+    backgroundColor: palette.gray[100],
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  transparentHeader: {
+    backgroundColor: 'transparent',
+  },
+  body: {
+    marginTop: -24,
+    paddingHorizontal: 24,
+    paddingBottom: 140,
+    gap: 16,
+  },
+  card: {
+    backgroundColor: palette.white,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: palette.gray[200],
+    padding: 16,
+    gap: 12,
+  },
+  cardLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dateBadge: {
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.gray[100],
+    borderRadius: Radius.md,
+    paddingVertical: 8,
+  },
+  dateCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  venueBlock: {
+    gap: 4,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.gray[200],
+  },
+  description: {
+    lineHeight: 22,
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: palette.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.gray[200],
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    gap: 12,
+  },
+  feeRow: {
+    gap: 4,
+  },
+});

@@ -16,6 +16,15 @@ function copyFile(src, dest) {
   fs.copyFileSync(src, dest);
 }
 
+function copyTabBarSvg(src, dest) {
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  const svg = fs
+    .readFileSync(src, 'utf8')
+    .replace(/fill="black"/gi, 'fill="currentColor"')
+    .replace(/stroke="black"/gi, 'stroke="currentColor"');
+  fs.writeFileSync(dest, svg);
+}
+
 function main() {
   if (!fs.existsSync(sourceRoot)) {
     console.warn(`[sync-hw-assets] Source not found: ${sourceRoot}`);
@@ -64,6 +73,30 @@ function main() {
     }
   }
 
+  const tenantProfileCopies = [
+    ['Profile-App- After Onboarding /Personal Details.svg', 'personal-details.svg'],
+    ['Profile-App- After Onboarding /Booking Details.svg', 'booking-details.svg'],
+    ['Profile-App- After Onboarding /Bank Details.svg', 'bank-details.svg'],
+    ['Profile-App- After Onboarding /Emergency Contact Details.svg', 'emergency-contact.svg'],
+    ['Profile-App- After Onboarding /My Payments.svg', 'my-payments.svg'],
+    ['Profile-App- After Onboarding /Support.svg', 'tenant-support.svg'],
+    ['Profile-App- After Onboarding /My Visits.svg', 'tenant-my-visits.svg'],
+    ['Profile-App- After Onboarding /My Wishlist.svg', 'tenant-wishlist.svg'],
+    ['Profile-App- After Onboarding /Referral.svg', 'referral.svg'],
+    ['Profile-App- After Onboarding /Community Events.svg', 'tenant-community-events.svg'],
+    ['Profile-App- After Onboarding /Move Out.svg', 'move-out.svg'],
+    ['Profile-App- After Onboarding /About.svg', 'tenant-about.svg'],
+    ['Profile-App- After Onboarding /Privacy Policy.svg', 'tenant-privacy-policy.svg'],
+    ['Profile-App- After Onboarding /Tenancy Policy.svg', 'tenant-tenancy-policy.svg'],
+    ['Profile-App- After Onboarding /Logout.svg', 'tenant-logout.svg'],
+  ];
+  for (const [relativeSource, destName] of tenantProfileCopies) {
+    const src = path.join(profileSource, relativeSource);
+    if (fs.existsSync(src)) {
+      copyTabBarSvg(src, path.join(profileTarget, destName));
+    }
+  }
+
   console.log(`[sync-hw-assets] Synced profile menu assets to ${profileTarget}`);
 
   const contactTarget = path.join(__dirname, '..', 'assets', 'bundled', 'contact');
@@ -87,10 +120,53 @@ function main() {
   for (const [relativeSource, destName] of tabBarCopies) {
     const src = path.join(profileSource, relativeSource);
     if (fs.existsSync(src)) {
-      copyFile(src, path.join(tabBarTarget, destName));
+      copyTabBarSvg(src, path.join(tabBarTarget, destName));
     }
   }
   console.log(`[sync-hw-assets] Synced tab bar assets to ${tabBarTarget}`);
+
+  const tenantTabBarCopies = [
+    ['Dashboard- App/Bottom Nav/Dashboard.svg', 'dashboard.svg'],
+    ['Dashboard- App/Bottom Nav/Explore.svg', 'explore.svg'],
+    ['Dashboard- App/Bottom Nav/Payments.svg', 'payments.svg'],
+    ['Dashboard- App/Bottom Nav/Support.svg', 'support.svg'],
+  ];
+  for (const [relativeSource, destName] of tenantTabBarCopies) {
+    const src = path.join(profileSource, relativeSource);
+    if (fs.existsSync(src)) {
+      copyTabBarSvg(src, path.join(tabBarTarget, destName));
+    }
+  }
+
+  const dashboardTarget = path.join(__dirname, '..', 'assets', 'bundled', 'dashboard');
+  const dashboardCopies = [
+    ['Dashboard- App/SOS.svg', 'sos.svg'],
+    ['Dashboard- App/Visitor.svg', 'visitor.svg'],
+    ['Dashboard- App/Roomate.svg', 'roommate.svg'],
+    ['Dashboard- App/Refer.svg', 'refer.svg'],
+    ['Dashboard- App/Call.svg', 'call.svg'],
+    ['Dashboard- App/Profile.svg', 'profile.svg'],
+    ['Dashboard- App/Notification.svg', 'notification.svg'],
+  ];
+  for (const [relativeSource, destName] of dashboardCopies) {
+    const src = path.join(profileSource, relativeSource);
+    if (fs.existsSync(src)) {
+      copyTabBarSvg(src, path.join(dashboardTarget, destName));
+    }
+  }
+  console.log(`[sync-hw-assets] Synced dashboard assets to ${dashboardTarget}`);
+
+  const paymentsTarget = path.join(__dirname, '..', 'assets', 'bundled', 'payments');
+  const paymentLottieSrc = path.join(
+    profileSource,
+    'Payments- App',
+    'Lottie Animations',
+    'Payment Pending_Animation.json',
+  );
+  if (fs.existsSync(paymentLottieSrc)) {
+    copyFile(paymentLottieSrc, path.join(paymentsTarget, 'payment-pending.json'));
+    console.log(`[sync-hw-assets] Synced payment assets to ${paymentsTarget}`);
+  }
 }
 
 main();

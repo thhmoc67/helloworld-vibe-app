@@ -74,7 +74,6 @@ export function LocalitySearchScreen() {
           </Pressable>
 
           <SearchInput
-            autoFocus
             showShadow={false}
             value={keyword}
             onChangeText={setKeyword}

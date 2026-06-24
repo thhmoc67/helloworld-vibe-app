@@ -53,6 +53,29 @@ export const TabBarIcons = {
   myVisits: require('../../assets/bundled/tab-bar/my-visits.svg').default,
   wishlist: require('../../assets/bundled/tab-bar/wishlist.svg').default,
   contact: require('../../assets/bundled/tab-bar/contact.svg').default,
+  dashboard: require('../../assets/bundled/tab-bar/dashboard.svg').default,
+  explore: require('../../assets/bundled/tab-bar/explore.svg').default,
+  payments: require('../../assets/bundled/tab-bar/payments.svg').default,
+  support: require('../../assets/bundled/tab-bar/support.svg').default,
+} as const;
+
+export const DashboardImages = {
+  rentCalendar: require('../../assets/bundled/dashboard/rent-calendar.png'),
+  referralIllustration: require('../../assets/bundled/dashboard/referral-illustration.png'),
+} as const;
+
+export const DashboardIcons = {
+  sos: require('../../assets/bundled/dashboard/sos.svg').default,
+  visitor: require('../../assets/bundled/dashboard/visitor.svg').default,
+  roommate: require('../../assets/bundled/dashboard/roommate.svg').default,
+  refer: require('../../assets/bundled/dashboard/refer.svg').default,
+  call: require('../../assets/bundled/dashboard/call.svg').default,
+  profile: require('../../assets/bundled/dashboard/profile.svg').default,
+  notification: require('../../assets/bundled/dashboard/notification.svg').default,
+} as const;
+
+export const PaymentLottieAssets = {
+  pending: require('../../assets/bundled/payments/payment-pending.json'),
 } as const;
 
 export const HomepageIcons = {

@@ -1,5 +1,5 @@
-import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,38 +8,38 @@ import { createVisit } from '@/api/visit';
 import { HdpBookOccupantForm, type OccupantFormErrors } from '@/components/hdp/hdp-book-occupant-form';
 import { HdpBookRoomSelection } from '@/components/hdp/hdp-book-room-selection';
 import {
-  HdpVisitDetailsForm,
-  type VisitContactDetails,
+    HdpVisitDetailsForm,
+    type VisitContactDetails,
 } from '@/components/hdp/hdp-visit-details-form';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { SegmentedTabToggle } from '@/components/ui/segmented-tab-toggle';
 import { Typography } from '@/components/ui/typography';
-import { usePropertyVisitSlots } from '@/queries/use-property-visit-slots';
-import type { OccupancyType, OccupantDetails, PropertyCategory } from '@/types/booking';
-import {
-  DEFAULT_VISIT_TIME_SLOTS,
-  buildVisitDateOptions,
-  formatVisitConfirmation,
-  type VisitDateOption,
-  type VisitTimeSlot,
-} from '@/utils/visit-dates';
-import { useBookingDraftStore } from '@/stores/booking-draft-store';
-import { useAuthStore } from '@/stores/auth-store';
-import {
-  buildBookRoomOptions,
-  buildOccupancyOptions,
-  getOccupancyLabel,
-} from '@/utils/booking-rooms';
-import {
-  buildPropertyMapUrl,
-  findSlotDay,
-  formatVisitApiDate,
-  mapSlotDaysToDateOptions,
-  mapTimeSlotsForDay,
-} from '@/utils/visit-slots';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+import { usePropertyVisitSlots } from '@/queries/use-property-visit-slots';
+import { useAuthStore } from '@/stores/auth-store';
+import { useBookingDraftStore } from '@/stores/booking-draft-store';
+import type { OccupancyType, OccupantDetails, PropertyCategory } from '@/types/booking';
+import {
+    buildBookRoomOptions,
+    buildOccupancyOptions,
+    getOccupancyLabel,
+} from '@/utils/booking-rooms';
+import {
+    DEFAULT_VISIT_TIME_SLOTS,
+    buildVisitDateOptions,
+    formatVisitConfirmation,
+    type VisitDateOption,
+    type VisitTimeSlot,
+} from '@/utils/visit-dates';
+import {
+    buildPropertyMapUrl,
+    findSlotDay,
+    formatVisitApiDate,
+    mapSlotDaysToDateOptions,
+    mapTimeSlotsForDay,
+} from '@/utils/visit-slots';
 
 type VisitSheetTab = 'schedule' | 'book';
 type ScheduleStep = 'datetime' | 'details' | 'confirmed';

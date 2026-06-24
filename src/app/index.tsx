@@ -10,6 +10,8 @@ import { Typography } from '@/components/ui/typography';
 import { LottieAssets } from '@/constants/assets';
 import palette from '@/constants/palette';
 import { useAuthHydrated, useIsAuthenticated } from '@/stores/auth-store';
+import { useTenantStore } from '@/stores/tenant-store';
+import { getDefaultTabRoute } from '@/utils/tenant-routing';
 
 const SPLASH_GRADIENT = [palette.lime[400], palette.blue[500], palette.purpleScale[500]] as const;
 
@@ -21,11 +23,29 @@ export default function SplashScreen() {
   useEffect(() => {
     if (!hydrated) return;
 
+    let cancelled = false;
+
+    async function bootstrap() {
+      if (!isAuthenticated) {
+        router.replace('/login');
+        return;
+      }
+
+      await useTenantStore.getState().fetchProfile();
+      if (cancelled) return;
+
+      const isTenant = Boolean(useTenantStore.getState().profile?.bookingId);
+      router.replace(getDefaultTabRoute(isTenant));
+    }
+
     const timer = setTimeout(() => {
-      router.replace(isAuthenticated ? '/(tabs)/home' : '/login');
+      bootstrap();
     }, 2800);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [hydrated, isAuthenticated, router]);
 
   return (

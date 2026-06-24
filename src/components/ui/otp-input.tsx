@@ -10,10 +10,9 @@ const OTP_LENGTH = 6;
 type OtpInputProps = {
   value: string;
   onChange: (value: string) => void;
-  autoFocus?: boolean;
 };
 
-export function OtpInput({ value, onChange, autoFocus = true }: OtpInputProps) {
+export function OtpInput({ value, onChange }: OtpInputProps) {
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
 
@@ -50,7 +49,6 @@ export function OtpInput({ value, onChange, autoFocus = true }: OtpInputProps) {
         textContentType="oneTimeCode"
         autoComplete="sms-otp"
         maxLength={OTP_LENGTH}
-        autoFocus={autoFocus}
         caretHidden
         selectionColor="transparent"
         style={styles.hiddenInput}

@@ -323,10 +323,10 @@ export function ComponentShowcaseScreen() {
 
         <Section title="OTP input">
           <Subsection label="Filled">
-            <OtpInput value={otp} onChange={setOtp} autoFocus={false} />
+            <OtpInput value={otp} onChange={setOtp} />
           </Subsection>
           <Subsection label="Empty">
-            <OtpInput value="" onChange={() => {}} autoFocus={false} />
+            <OtpInput value="" onChange={() => {}} />
           </Subsection>
         </Section>
 

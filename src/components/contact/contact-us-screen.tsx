@@ -234,7 +234,6 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
                 autoCapitalize="words"
                 error={errors.name}
                 containerStyle={styles.field}
-                autoFocus
               />
 
               <View style={styles.field}>

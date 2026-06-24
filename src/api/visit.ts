@@ -1,4 +1,5 @@
 import { http } from '@/api/http';
+import type { PropertyVisit } from '@/types/visit';
 
 export type VisitSlotTime = {
   label: string;
@@ -47,6 +48,30 @@ export async function getPropertyVisitSlots(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load visit slots';
     return { success: false, message };
+  }
+}
+
+export async function getVisitsList(): Promise<PropertyVisit[]> {
+  try {
+    const { data } = await http.get<PropertyVisit[] | { status?: number; data?: PropertyVisit[] }>(
+      'api/hello/visit/list',
+    );
+
+    if (data && typeof data === 'object' && 'status' in data && data.status === 404) {
+      return [];
+    }
+
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (data && typeof data === 'object' && Array.isArray(data.data)) {
+      return data.data;
+    }
+
+    return [];
+  } catch {
+    return [];
   }
 }
 

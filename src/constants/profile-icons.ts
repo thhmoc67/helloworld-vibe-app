@@ -10,6 +10,21 @@ export const ProfileIcons = {
   tenancyPolicy: require('../../assets/bundled/profile/tenancy-policy.svg').default,
   logout: require('../../assets/bundled/profile/logout.svg').default,
   profile: require('../../assets/bundled/profile/profile.svg').default,
+  personalDetails: require('../../assets/bundled/profile/personal-details.svg').default,
+  bookingDetails: require('../../assets/bundled/profile/booking-details.svg').default,
+  bankDetails: require('../../assets/bundled/profile/bank-details.svg').default,
+  emergencyContact: require('../../assets/bundled/profile/emergency-contact.svg').default,
+  myPayments: require('../../assets/bundled/profile/my-payments.svg').default,
+  tenantSupport: require('../../assets/bundled/profile/tenant-support.svg').default,
+  tenantMyVisits: require('../../assets/bundled/profile/tenant-my-visits.svg').default,
+  tenantWishlist: require('../../assets/bundled/profile/tenant-wishlist.svg').default,
+  referral: require('../../assets/bundled/profile/referral.svg').default,
+  tenantCommunityEvents: require('../../assets/bundled/profile/tenant-community-events.svg').default,
+  moveOut: require('../../assets/bundled/profile/move-out.svg').default,
+  tenantAbout: require('../../assets/bundled/profile/tenant-about.svg').default,
+  tenantPrivacyPolicy: require('../../assets/bundled/profile/tenant-privacy-policy.svg').default,
+  tenantTenancyPolicy: require('../../assets/bundled/profile/tenant-tenancy-policy.svg').default,
+  tenantLogout: require('../../assets/bundled/profile/tenant-logout.svg').default,
 } as const;
 
 export type ProfileIconName = keyof typeof ProfileIcons;

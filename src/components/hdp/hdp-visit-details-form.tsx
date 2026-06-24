@@ -65,7 +65,6 @@ export function HdpVisitDetailsForm({
         autoCapitalize="words"
         error={errors?.name}
         placeholder="Please enter your full name"
-        autoFocus
       />
 
       <TextField

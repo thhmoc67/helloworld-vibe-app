@@ -5,7 +5,7 @@ import config from '@/config';
 import { useAuthStore } from '@/stores/auth-store';
 
 export const http = axios.create({
-  baseURL: config.BASE_URL,
+  baseURL: config.BASE_URL.endsWith('/') ? config.BASE_URL : `${config.BASE_URL}/`,
   timeout: 30_000,
 });
 
@@ -30,6 +30,9 @@ http.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       useAuthStore.getState().clearSession();
+      void import('@/stores/tenant-store').then(({ useTenantStore }) => {
+        useTenantStore.getState().clearProfile();
+      });
     }
     return Promise.reject(error);
   },

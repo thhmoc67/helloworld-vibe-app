@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "424721621750",
+    "firebase_url": "https://helloworld-native.firebaseio.com",
+    "project_id": "helloworld-native",
+    "storage_bucket": "helloworld-native.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:424721621750:android:3deb8df00fa12daba602d7",
+        "android_client_info": {
+          "package_name": "com.thehelloworld"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "424721621750-j16s4m7fbrmiu8ogpd9j0117891bop84.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.thehelloworld",
+            "certificate_hash": "e61725c25bf9c90e0dd972d5ab779b4ef06e9321"
+          }
+        },
+        {
+          "client_id": "424721621750-65dt85jgec23e1ljolo3ico5l1h70hhr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3H1hq8lS2tuHVOXIVQb_5Hnge_Z52ZM8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "424721621750-65dt85jgec23e1ljolo3ico5l1h70hhr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

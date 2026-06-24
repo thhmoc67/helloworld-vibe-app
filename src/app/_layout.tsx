@@ -39,8 +39,20 @@ export default function RootLayout() {
         <Stack.Screen name="hdp" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="booking" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="booking-success" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="move-in-steps" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="menu" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="profile" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="roommates" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="visitors" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="sos" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="ticket-details" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="community-events" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="community-event" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen
+          name="community-registration-confirmed"
+          options={{ animation: 'slide_from_right' }}
+        />
         <Stack.Screen name="component-showcase" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </AppProviders>

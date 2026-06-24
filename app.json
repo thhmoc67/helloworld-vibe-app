@@ -13,7 +13,8 @@
       "icon": "./assets/expo.icon",
       "supportsTablet": true,
       "bundleIdentifier": "org.HelloWorldTechnologiesIndiaPvtLtd.react.native.HelloWorld",
-      "buildNumber": "151"
+      "buildNumber": "151",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +25,7 @@
       },
       "package": "com.thehelloworld",
       "versionCode": 250,
+      "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize"
     },
@@ -55,7 +57,20 @@
       "@react-native-firebase/messaging",
       "@react-native-firebase/analytics",
       "@react-native-firebase/crashlytics",
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "forceStaticLinking": [
+              "RNFBApp",
+              "RNFBMessaging",
+              "RNFBAnalytics",
+              "RNFBCrashlytics"
+            ]
+          }
+        }
+      ],
       [
         "expo-font",
         {

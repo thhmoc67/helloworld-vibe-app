@@ -8,7 +8,15 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabBarIcon } from '@/components/tab-bar-icon';
-import { TAB_ROUTES, type TabRouteName } from '@/constants/tab-bar';
+import {
+  PROSPECT_TAB_ORDER,
+  PROSPECT_TAB_ROUTES,
+  TENANT_TAB_ORDER,
+  TENANT_TAB_ROUTES,
+  type ProspectTabRouteName,
+  type TabBarIconName,
+  type TenantTabRouteName,
+} from '@/constants/tab-bar';
 import { fontStyleForWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
 
@@ -27,23 +35,54 @@ type HwBottomTabBarProps = {
     }) => { defaultPrevented: boolean };
     navigate: (name: string, params?: object) => void;
   };
+  isTenant?: boolean;
 };
 
 const PILL_SPRING = { damping: 20, stiffness: 240, mass: 0.75 };
 const PILL_INSET = 2;
 
-export function HwBottomTabBar({ state, navigation }: HwBottomTabBarProps) {
+type TabMeta = {
+  label: string;
+  icon: TabBarIconName;
+};
+
+function getTabMeta(isTenant: boolean, name: string): TabMeta | null {
+  if (isTenant && name in TENANT_TAB_ROUTES) {
+    return TENANT_TAB_ROUTES[name as TenantTabRouteName];
+  }
+  if (!isTenant && name in PROSPECT_TAB_ROUTES) {
+    return PROSPECT_TAB_ROUTES[name as ProspectTabRouteName];
+  }
+  return null;
+}
+
+export function HwBottomTabBar({ state, navigation, isTenant = false }: HwBottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const [barWidth, setBarWidth] = useState(0);
-  const activeIndex = useSharedValue(state.index);
+  const activeIndex = useSharedValue(0);
 
-  const tabCount = state.routes.length;
+  const tabOrder = isTenant ? TENANT_TAB_ORDER : PROSPECT_TAB_ORDER;
+  const visibleTabs = tabOrder
+    .map((name) => {
+      const route = state.routes.find((item) => item.name === name);
+      const meta = getTabMeta(isTenant, name);
+      if (!route || !meta) return null;
+      return { route, meta };
+    })
+    .filter(Boolean) as { route: TabRoute; meta: TabMeta }[];
+
+  const focusedName = state.routes[state.index]?.name;
+  const focusedVisibleIndex = Math.max(
+    0,
+    visibleTabs.findIndex((tab) => tab.route.name === focusedName),
+  );
 
   useEffect(() => {
-    activeIndex.value = withSpring(state.index, PILL_SPRING);
-  }, [state.index, activeIndex]);
+    activeIndex.value = withSpring(focusedVisibleIndex, PILL_SPRING);
+  }, [focusedVisibleIndex, activeIndex]);
 
   const pillAnimatedStyle = useAnimatedStyle(() => {
+    const tabCount = visibleTabs.length;
     if (barWidth === 0 || tabCount === 0) {
       return { opacity: 0 };
     }
@@ -66,11 +105,8 @@ export function HwBottomTabBar({ state, navigation }: HwBottomTabBarProps) {
         onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}>
         <Animated.View style={[styles.activePill, pillAnimatedStyle]} pointerEvents="none" />
 
-        {state.routes.map((route, index) => {
-          const meta = TAB_ROUTES[route.name as TabRouteName];
-          if (!meta) return null;
-
-          const isFocused = state.index === index;
+        {visibleTabs.map(({ route, meta }) => {
+          const isFocused = focusedName === route.name;
 
           function onPress() {
             const event = navigation.emit({
@@ -110,13 +146,15 @@ const styles = StyleSheet.create({
   wrapper: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    backgroundColor: 'transparent',
+    backgroundColor: palette.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.gray[200],
   },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'transparent',
+    backgroundColor: palette.gray[50],
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 8,
@@ -137,13 +175,8 @@ const styles = StyleSheet.create({
     top: 8,
     bottom: 8,
     left: 0,
-    backgroundColor: palette.lime[100],
+    backgroundColor: palette.lime[50],
     borderRadius: 999,
-    shadowColor: palette.lime[400],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 2,
   },
   label: {
     fontSize: 11,

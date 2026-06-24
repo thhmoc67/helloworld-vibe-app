@@ -34,6 +34,12 @@ export function BookingSuccessScreen() {
     router.replace('/(tabs)/home');
   }
 
+  function handleViewMoveInSteps() {
+    clearDraft();
+    clearPaymentResult();
+    router.replace('/move-in-steps');
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
@@ -52,7 +58,7 @@ export function BookingSuccessScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.content, { paddingBottom: 120 + insets.bottom }]}>
+        contentContainerStyle={[styles.content, { paddingBottom: 160 + insets.bottom }]}>
         <View style={styles.successIconWrap}>
           <View style={styles.successGlow} />
           <View style={styles.successIcon}>
@@ -126,7 +132,8 @@ export function BookingSuccessScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Button label="Go to Dashboard" onPress={handleGoToDashboard} />
+        <Button label="View Move-in Steps" onPress={handleViewMoveInSteps} />
+        <Button label="Go to Dashboard" variant="outline" onPress={handleGoToDashboard} />
       </View>
     </SafeAreaView>
   );
@@ -259,5 +266,6 @@ const styles = StyleSheet.create({
     borderTopColor: palette.gray[200],
     paddingHorizontal: 24,
     paddingTop: 16,
+    gap: 12,
   },
 });
