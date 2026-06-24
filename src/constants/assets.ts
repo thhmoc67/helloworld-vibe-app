@@ -62,6 +62,7 @@ export const TabBarIcons = {
 export const DashboardImages = {
   rentCalendar: require('../../assets/bundled/dashboard/rent-calendar.png'),
   referralIllustration: require('../../assets/bundled/dashboard/referral-illustration.png'),
+  moveInKeys: require('../../assets/bundled/dashboard/move-in-keys.png'),
 } as const;
 
 export const DashboardIcons = {

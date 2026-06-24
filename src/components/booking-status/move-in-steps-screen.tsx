@@ -14,18 +14,27 @@ import { MoveInCompletedSection } from '@/components/booking-status/move-in-comp
 import { MoveInPendingCard } from '@/components/booking-status/move-in-pending-card';
 import { MoveInProgressCard } from '@/components/booking-status/move-in-progress-card';
 import { MoveInStepsHeader } from '@/components/booking-status/move-in-steps-header';
+import { DashboardMoveInPendingPaymentCard } from '@/components/tenant/dashboard/dashboard-move-in-pending-payment-card';
 import { Typography } from '@/components/ui/typography';
 import { getKycLink } from '@/api/user';
 import palette from '@/constants/palette';
+import { useInvoicePayment } from '@/hooks/use-invoice-payment';
 import { useBookingStatus } from '@/queries/use-booking-status';
+import { useTenantInvoices } from '@/queries/use-tenant-invoices';
 import { useTenantProfile } from '@/stores/tenant-store';
 import type { MoveInStep } from '@/types/booking-status';
 import { buildMoveInSteps, partitionMoveInSteps } from '@/utils/move-in-steps';
+import {
+  getMoveInPendingAmount,
+  shouldShowMoveInPendingPaymentCard,
+} from '@/utils/move-in-payment';
 
 export function MoveInStepsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const profile = useTenantProfile();
+  const { payInvoice } = useInvoicePayment();
+  const { data: invoices } = useTenantInvoices();
   const { data: status, isLoading, isError, refetch, isRefetching } = useBookingStatus();
 
   useFocusEffect(
@@ -37,6 +46,20 @@ export function MoveInStepsScreen() {
   const steps = status ? buildMoveInSteps(status, profile) : [];
   const { completed, pending, total, doneCount } = partitionMoveInSteps(steps);
   const moveInDate = status?.move_in_date ?? profile?.propertyInfo?.moveInDate ?? '';
+  const nextPending = invoices?.pending?.[0];
+  const showMoveInPendingPayment = shouldShowMoveInPendingPaymentCard(profile, status);
+  const moveInPendingAmount = getMoveInPendingAmount(profile, nextPending);
+  const visiblePending = showMoveInPendingPayment
+    ? pending.filter((step) => step.id !== 'advance-charges')
+    : pending;
+
+  function handleMoveInPayment() {
+    if (nextPending) {
+      payInvoice(nextPending);
+      return;
+    }
+    router.push('/(tabs)/payments');
+  }
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -84,16 +107,26 @@ export function MoveInStepsScreen() {
             styles.content,
             { paddingBottom: Math.max(insets.bottom, 24) + 24 },
           ]}>
+          {showMoveInPendingPayment ? (
+            <DashboardMoveInPendingPaymentCard
+              propertyName={profile?.propertyInfo?.name ?? 'Your property'}
+              locality={profile?.propertyInfo?.locality}
+              imageUrl={profile?.propertyInfo?.imageUrl}
+              amount={moveInPendingAmount}
+              onPayPress={handleMoveInPayment}
+            />
+          ) : null}
+
           {moveInDate ? (
             <MoveInProgressCard doneCount={doneCount} total={total} moveInDate={moveInDate} />
           ) : null}
 
-          {pending.length > 0 ? (
+          {visiblePending.length > 0 ? (
             <View style={styles.section}>
               <Typography variant="text" size="xl" weight="bold">
                 Pending Actions
               </Typography>
-              {pending.map((step) => (
+              {visiblePending.map((step) => (
                 <MoveInPendingCard
                   key={step.id}
                   step={step}

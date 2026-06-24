@@ -46,6 +46,7 @@ export default function RootLayout() {
         <Stack.Screen name="roommates" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="visitors" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="sos" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="complete-payment" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="ticket-details" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="community-events" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="community-event" options={{ animation: 'slide_from_right' }} />

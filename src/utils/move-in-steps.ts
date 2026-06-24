@@ -106,6 +106,11 @@ export function formatMoveInDeadline(isoDate: string) {
   return `${day}${suffix} ${monthYear}`;
 }
 
+export function buildMoveInPendingMessage(pendingCount: number) {
+  const label = pendingCount === 1 ? 'step' : 'steps';
+  return `Just ${pendingCount} quick ${label} left before you can collect your keys and move in.`;
+}
+
 export function buildProgressMessage(doneCount: number, total: number, moveInDate: string) {
   const remaining = Math.max(total - doneCount, 0);
   const deadline = formatMoveInDeadline(moveInDate);

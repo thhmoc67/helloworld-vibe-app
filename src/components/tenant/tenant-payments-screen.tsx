@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import { PaymentLottieAssets } from '@/constants/assets';
 import palette from '@/constants/palette';
 import { TAB_SCREEN_EXTRA_PADDING } from '@/constants/tab-bar';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
+import { useInvoicePayment } from '@/hooks/use-invoice-payment';
 import { useTenantInvoices } from '@/queries/use-tenant-invoices';
 import type { TenantInvoice } from '@/types/invoice';
 
@@ -38,18 +38,11 @@ function PaymentsEmptyState() {
 
 export function TenantPaymentsScreen() {
   const tabBarInset = useTabBarInset();
+  const { payInvoice } = useInvoicePayment();
   const { data, isLoading, refetch, isRefetching } = useTenantInvoices();
   const [tab, setTab] = useState<PaymentsTab>('pending');
 
   const list = tab === 'pending' ? data?.pending ?? [] : data?.paid ?? [];
-
-  function handlePay(invoice: TenantInvoice) {
-    Alert.alert(
-      'Payment',
-      `Pay ${invoice.balance ?? invoice.total ?? 0} for ${invoice.invoice_number ?? invoice.invoice_id}?`,
-      [{ text: 'OK' }],
-    );
-  }
 
   return (
     <View style={styles.root}>
@@ -77,7 +70,7 @@ export function TenantPaymentsScreen() {
                 key={invoice.invoice_id}
                 invoice={invoice}
                 variant={tab === 'pending' ? 'pending' : 'paid'}
-                onPay={() => handlePay(invoice)}
+                onPay={() => payInvoice(invoice)}
                 onInvoice={() => openInvoiceUrl(invoice.invoice_url)}
               />
             ))}

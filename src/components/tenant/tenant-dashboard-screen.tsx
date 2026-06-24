@@ -16,7 +16,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DashboardIcon } from '@/components/dashboard/dashboard-icon';
 import { DashboardEventsSection } from '@/components/tenant/dashboard/dashboard-events-section';
-import { DashboardMoveInStepsCard } from '@/components/tenant/dashboard/dashboard-move-in-steps-card';
+import { DashboardMoveInPendingPaymentCard } from '@/components/tenant/dashboard/dashboard-move-in-pending-payment-card';
+import {
+  DashboardMoveInStepsCard,
+  useMoveInDashboardCard,
+} from '@/components/tenant/dashboard/dashboard-move-in-steps-card';
 import { DashboardPmCard } from '@/components/tenant/dashboard/dashboard-pm-card';
 import { DashboardQuickActions } from '@/components/tenant/dashboard/dashboard-quick-actions';
 import { DashboardReferralCard } from '@/components/tenant/dashboard/dashboard-referral-card';
@@ -34,19 +38,27 @@ import palette from '@/constants/palette';
 import { TAB_SCREEN_EXTRA_PADDING } from '@/constants/tab-bar';
 import { Radius } from '@/constants/theme';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
+import { useInvoicePayment } from '@/hooks/use-invoice-payment';
 import { useUpcomingEvents } from '@/queries/use-events';
+import { useBookingStatus } from '@/queries/use-booking-status';
 import { useSupportTickets } from '@/queries/use-support-tickets';
 import { useTenantInvoices } from '@/queries/use-tenant-invoices';
 import { getPropertyManagerByBookingId } from '@/api/user';
 import { postCreateTicket } from '@/api/tickets';
 import { useTenantProfile } from '@/stores/tenant-store';
+import {
+  getMoveInPendingAmount,
+  shouldShowMoveInPendingPaymentCard,
+} from '@/utils/move-in-payment';
 
 export function TenantDashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarInset();
+  const { payInvoice } = useInvoicePayment();
   const queryClient = useQueryClient();
   const profile = useTenantProfile();
+  const { data: bookingStatus } = useBookingStatus();
   const { data: invoices, isLoading: invoicesLoading, refetch: refetchInvoices } = useTenantInvoices();
   const { data: tickets, refetch: refetchTickets } = useSupportTickets();
   const { data: events, isLoading: eventsLoading, refetch: refetchEvents } = useUpcomingEvents();
@@ -62,6 +74,10 @@ export function TenantDashboardScreen() {
     .join(' · ');
   const creditInfo = profile?.creditInfo;
   const rentAmount = nextPending?.balance ?? profile?.paymentInfo?.rent ?? 0;
+  const { visible: showMoveInCard } = useMoveInDashboardCard();
+  const showMoveInPendingPayment = shouldShowMoveInPendingPaymentCard(profile, bookingStatus);
+  const moveInPendingAmount = getMoveInPendingAmount(profile, nextPending);
+  const propertyLocality = profile?.propertyInfo?.locality;
 
   useEffect(() => {
     if (!profile?.bookingId) return;
@@ -84,6 +100,14 @@ export function TenantDashboardScreen() {
     if (!pmPhone) return;
     const url = Platform.OS === 'android' ? `tel:${pmPhone}` : `telprompt:${pmPhone}`;
     Linking.openURL(url);
+  }
+
+  function handlePayNow() {
+    if (nextPending) {
+      payInvoice(nextPending);
+      return;
+    }
+    router.push('/(tabs)/payments');
   }
 
   function handleQuickAction(id: string) {
@@ -155,13 +179,23 @@ export function TenantDashboardScreen() {
         ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}>
-        <DashboardRentCard
-          dueDate={nextPending?.due_date}
-          amount={rentAmount}
-          onPayPress={() => router.push('/(tabs)/payments')}
-        />
-
-        <DashboardMoveInStepsCard />
+        {showMoveInPendingPayment ? (
+          <DashboardMoveInPendingPaymentCard
+            propertyName={profile?.propertyInfo?.name ?? 'Your property'}
+            locality={propertyLocality}
+            imageUrl={profile?.propertyInfo?.imageUrl}
+            amount={moveInPendingAmount}
+            onPayPress={handlePayNow}
+          />
+        ) : showMoveInCard ? (
+          <DashboardMoveInStepsCard />
+        ) : (
+          <DashboardRentCard
+            dueDate={nextPending?.due_date}
+            amount={rentAmount}
+            onPayPress={handlePayNow}
+          />
+        )}
 
         {pmName ? (
           <DashboardPmCard

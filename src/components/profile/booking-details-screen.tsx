@@ -193,7 +193,7 @@ export function BookingDetailsScreen() {
           ) : (
             <View style={styles.emptyCard}>
               <Typography variant="text" size="sm" color={palette.gray[500]} style={styles.emptyText}>
-                {profile?.documents?.isDocumentSigned || bookingStatus?.signed_document
+                {hasSignedDocument
                   ? `Your rental agreement will appear here once it is available for download.${property?.moveInDate ? ` Current stay: ${formatAgreementDateRange(property.moveInDate, property.moveOutDate)}.` : ''}`
                   : 'Your rental agreement will be shared over your registered email once onboarding is completed.'}
               </Typography>

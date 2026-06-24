@@ -120,24 +120,26 @@ export function getRentalAgreements(profile?: TenantProfile | null): RentalAgree
   const rawAgreements = record.rentalAgreements ?? record.agreements ?? record.rental_agreements;
 
   if (Array.isArray(rawAgreements) && rawAgreements.length > 0) {
-    return rawAgreements
-      .map((item, index) => {
-        if (!item || typeof item !== 'object') return null;
-        const agreement = item as Record<string, unknown>;
-        const start = readString(agreement.startDate ?? agreement.start_date ?? agreement.from);
-        const end = readString(agreement.endDate ?? agreement.end_date ?? agreement.to);
-        const downloadUrl = readString(
-          agreement.url ?? agreement.downloadUrl ?? agreement.download_url ?? agreement.documentUrl,
-        );
+    const parsed: RentalAgreementItem[] = [];
 
-        return {
-          id: readString(agreement.id) ?? `agreement-${index}`,
-          label: readString(agreement.label) ?? 'Rental Agreement',
-          dateRange: formatAgreementDateRange(start, end),
-          downloadUrl,
-        };
-      })
-      .filter((item): item is RentalAgreementItem => item != null);
+    rawAgreements.forEach((item, index) => {
+      if (!item || typeof item !== 'object') return;
+      const agreement = item as Record<string, unknown>;
+      const start = readString(agreement.startDate ?? agreement.start_date ?? agreement.from);
+      const end = readString(agreement.endDate ?? agreement.end_date ?? agreement.to);
+      const downloadUrl = readString(
+        agreement.url ?? agreement.downloadUrl ?? agreement.download_url ?? agreement.documentUrl,
+      );
+
+      parsed.push({
+        id: readString(agreement.id) ?? `agreement-${index}`,
+        label: readString(agreement.label) ?? 'Rental Agreement',
+        dateRange: formatAgreementDateRange(start, end),
+        downloadUrl,
+      });
+    });
+
+    return parsed;
   }
 
   const singleUrl = readString(
