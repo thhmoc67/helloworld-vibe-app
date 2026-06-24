@@ -35,6 +35,10 @@ export default function MenuScreen() {
       router.push('/(tabs)/contact');
       return;
     }
+    if (itemId === 'component-showcase') {
+      router.push('/component-showcase');
+      return;
+    }
   }
 
   return (
@@ -63,6 +67,17 @@ export default function MenuScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}>
         <ProfileSummary mobile={mobile} />
+
+        {__DEV__ ? (
+          <Pressable
+            onPress={() => router.push('/component-showcase')}
+            style={({ pressed }) => [styles.devLink, pressed && styles.devLinkPressed]}
+            accessibilityRole="button">
+            <Typography variant="text" size="sm" weight="medium" color={palette.blue[700]}>
+              Component Showcase (dev)
+            </Typography>
+          </Pressable>
+        ) : null}
 
         {MENU_SECTIONS.map((section) => (
           <MenuSectionCard key={section.id} section={section} onItemPress={handleItemPress} />
@@ -114,6 +129,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 32,
     gap: 24,
+  },
+  devLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: palette.blue[50],
+  },
+  devLinkPressed: {
+    opacity: 0.85,
   },
   footer: {
     textAlign: 'center',

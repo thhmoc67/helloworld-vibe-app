@@ -55,7 +55,13 @@
       "@react-native-firebase/messaging",
       "@react-native-firebase/analytics",
       "@react-native-firebase/crashlytics",
-      "expo-build-properties"
+      "expo-build-properties",
+      [
+        "expo-font",
+        {
+          "fonts": ["./assets/fonts/Satoshi-Variable.ttf"]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

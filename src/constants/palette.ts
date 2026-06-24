@@ -9,27 +9,29 @@ const brand = {
 } as const;
 
 const lime = {
+  25: '#FAFEF5',
   50: '#F7FEE7',
   100: '#D9F99E',
-  200: '#BEF264',
-  300: '#A3E635',
-  400: '#84CC16',
-  500: '#65A30C',
-  600: '#4D7B0C',
-  700: '#3E6111',
-  800: '#365312',
-  900: '#1A2E05',
+  200: '#D9F99E',
+  300: '#BEF264',
+  400: '#A3E635',
+  500: '#84CC15',
+  600: '#65A30C',
+  700: '#4D7C0C',
+  800: '#3E6111',
+  900: '#365312',
 } as const;
 
 const yellow = {
-  50: '#FEFCD0',
-  100: '#FEE9B9',
+  25: '#FFFBEE',
+  50: '#FEFCE8',
+  100: '#FEF9B9',
   200: '#FDE2A1',
-  300: '#FDDB8A',
+  300: '#FDDBBA',
   400: '#FDD373',
   500: '#FCCC5B',
   600: '#FCC544',
-  700: '#FBB02C',
+  700: '#FBBD2C',
   800: '#FBB615',
   900: '#F3AA00',
 } as const;
@@ -38,17 +40,18 @@ const gray = {
   25: '#FDFDFD',
   50: '#FAFAFA',
   100: '#F5F5F5',
-  200: '#E9EAEB',
+  200: '#E8EAEB',
   300: '#D5D7DA',
   400: '#A4A7AE',
   500: '#717880',
-  600: '#535B62',
-  700: '#414851',
+  600: '#535862',
+  700: '#414651',
   800: '#252B37',
   900: '#101828',
 } as const;
 
 const red = {
+  25: '#FFFBFA',
   50: '#FEF3F2',
   100: '#FEE4E2',
   200: '#FECDCA',
@@ -62,11 +65,12 @@ const red = {
 } as const;
 
 const blue = {
+  25: '#F5FBFF',
   50: '#F0F9FF',
   100: '#E0F2FE',
   200: '#B9E6FE',
   300: '#7CD4FD',
-  400: '#38BFFA',
+  400: '#38BFF8',
   500: '#0BA5EC',
   600: '#0086C9',
   700: '#026AA2',
@@ -75,6 +79,7 @@ const blue = {
 } as const;
 
 const purpleScale = {
+  25: '#FCFAFF',
   50: '#F9F5FF',
   100: '#F4EBFF',
   200: '#E9D7FE',
@@ -86,6 +91,22 @@ const purpleScale = {
   800: '#53389E',
   900: '#42307D',
 } as const;
+
+/** All swatch weights (25–900) shared across color scales. */
+export const COLOR_WEIGHTS = [25, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900] as const;
+
+export type ColorWeight = (typeof COLOR_WEIGHTS)[number];
+
+export const COLOR_SCALES = {
+  lime,
+  yellow,
+  gray,
+  red,
+  blue,
+  purple: purpleScale,
+} as const;
+
+export type ColorScaleName = keyof typeof COLOR_SCALES;
 
 export default {
   ...brand,
@@ -115,4 +136,7 @@ export default {
   borderError: red[600],
   focusRing: lime[100],
   surfaceDisabled: gray[100],
+  // Home screen background gradient (Figma: #252B37 → #3B4760, top to bottom)
+  homeGradientTop: gray[800],
+  homeGradientBottom: '#3B4760',
 } as const;

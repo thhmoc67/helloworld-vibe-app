@@ -8,7 +8,16 @@ export default function TabsLayout() {
       tabBar={(props) => <HwBottomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { display: 'none' },
+        tabBarStyle: {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
       }}>
       <Tabs.Screen name="home" options={{ title: 'Home' }} />
       <Tabs.Screen name="my-visits" options={{ title: 'My Visits' }} />

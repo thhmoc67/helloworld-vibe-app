@@ -15,3 +15,28 @@ export const SAMPLE_PROPERTY: PropertyListing = {
     { label: 'Women Only', variant: 'women-only' },
   ],
 };
+
+export const SAMPLE_PROPERTIES: PropertyListing[] = [
+  SAMPLE_PROPERTY,
+  {
+    ...SAMPLE_PROPERTY,
+    id: 'hw-koramangala',
+    name: 'HelloWorld Koramangala',
+    location: 'Coliving PG in Koramangala 5th Block',
+    vibeMatchPercent: 88,
+    startingRent: 14000,
+    badges: [{ label: 'Filling Fast', variant: 'filling-fast' }],
+    images: [ImageAssets.loginBento2, ImageAssets.loginBento3, ImageAssets.loginBento4],
+  },
+  {
+    ...SAMPLE_PROPERTY,
+    id: 'hw-indiranagar',
+    name: 'HelloWorld Indiranagar',
+    location: 'Coliving PG in Indiranagar',
+    rating: 4.7,
+    vibeMatchPercent: 91,
+    startingRent: 15000,
+    badges: [{ label: 'Women Only', variant: 'women-only' }],
+    images: [ImageAssets.loginBento3, ImageAssets.loginBento4, ImageAssets.loginBento1],
+  },
+];

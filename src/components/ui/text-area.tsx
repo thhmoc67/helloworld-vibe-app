@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { fontFamilyForWeight } from '@/constants/fonts';
+import { fontStyleForWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.textLabel,
   },
   input: {
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.white,
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: fontFamilyForWeight('regular'),
+    ...fontStyleForWeight('regular'),
     color: palette.textPrimary,
   },
   inputFocused: {

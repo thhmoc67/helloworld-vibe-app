@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { fontFamilyForWeight } from '@/constants/fonts';
+import { fontStyleForWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 
@@ -94,15 +94,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
   },
   primaryLabel: {
     color: palette.gray[800],
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
   },
   outlineLabel: {
     color: palette.gray[800],
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
   },
   textLabel: {
     color: palette.helloLime,

@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } fro
 import { SymbolView } from 'expo-symbols';
 
 import { Button } from '@/components/ui/button';
-import { fontFamilyForWeight } from '@/constants/fonts';
+import { fontStyleForWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 import type { PropertyBadge, PropertyListing } from '@/types/property';
@@ -72,10 +72,11 @@ export function PropertyCard({
   }
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, style, pressed && onPress ? styles.cardPressed : null]}
-      accessibilityRole={onPress ? 'button' : undefined}>
+    <View style={[styles.cardShadow, style]}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [styles.card, pressed && onPress ? styles.cardPressed : null]}
+        accessibilityRole={onPress ? 'button' : undefined}>
       <View style={styles.mediaSection}>
         <Image source={currentImage} style={styles.heroImage} contentFit="cover" />
 
@@ -199,20 +200,25 @@ export function PropertyCard({
           <Button label="Take a Tour" onPress={onTakeTour} style={styles.actionButton} />
         </View>
       </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  cardShadow: {
+    borderRadius: 16,
+    backgroundColor: palette.white,
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 6,
+  },
   card: {
     backgroundColor: palette.white,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#101828',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
   },
   cardPressed: {
     opacity: 0.96,
@@ -293,7 +299,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
   },
   badgeTextOrange: {
     color: '#B54708',
@@ -309,7 +315,7 @@ const styles = StyleSheet.create({
   vibeText: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
     color: palette.white,
   },
   body: {
@@ -327,7 +333,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 20,
     lineHeight: 28,
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
     color: palette.black,
   },
   ratingPill: {
@@ -339,7 +345,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
     color: palette.blue[800],
   },
   subtitleRow: {
@@ -351,7 +357,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.gray[600],
   },
   iconActions: {
@@ -374,7 +380,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.gray[700],
   },
   rentBlock: {
@@ -384,13 +390,13 @@ const styles = StyleSheet.create({
   rentLabel: {
     fontSize: 12,
     lineHeight: 18,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.gray[500],
   },
   rentValue: {
     fontSize: 24,
     lineHeight: 32,
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
     color: palette.black,
   },
   actionsRow: {

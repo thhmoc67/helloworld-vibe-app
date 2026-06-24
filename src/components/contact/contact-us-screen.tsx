@@ -20,7 +20,7 @@ import { SymbolView } from 'expo-symbols';
 import { ProfileIcon } from '@/components/profile-icon';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
-import { fontFamilyForWeight } from '@/constants/fonts';
+import { fontStyleForWeight } from '@/constants/fonts';
 import { ImageAssets } from '@/constants/assets';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     lineHeight: 28,
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
     color: palette.black,
     flex: 1,
   },
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   headline: {
     fontSize: 24,
     lineHeight: 32,
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
     color: palette.black,
     textAlign: 'center',
   },
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     lineHeight: 18,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.gray[700],
   },
   phoneBox: {
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   prefix: {
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.gray[400],
   },
   phoneInput: {
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     padding: 0,
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.black,
   },
   error: {
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.gray[900],
   },
   helpDeskBullet: {
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   callNow: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
     color: palette.helloLime,
   },
 });

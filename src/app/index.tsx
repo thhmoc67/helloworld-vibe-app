@@ -1,4 +1,6 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +10,8 @@ import { Typography } from '@/components/ui/typography';
 import { LottieAssets } from '@/constants/assets';
 import palette from '@/constants/palette';
 import { useAuthHydrated, useIsAuthenticated } from '@/stores/auth-store';
+
+const SPLASH_GRADIENT = [palette.lime[400], palette.blue[500], palette.purpleScale[500]] as const;
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -25,23 +29,33 @@ export default function SplashScreen() {
   }, [hydrated, isAuthenticated, router]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.content}>
-        <View style={styles.logoWrap}>
-          <HwLottie source={LottieAssets.loginLogo} style={styles.lottie} loop />
+    <LinearGradient
+      colors={[...SPLASH_GRADIENT]}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={styles.gradient}>
+      <StatusBar style="light" />
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.content}>
+          <View style={styles.logoWrap}>
+            <HwLottie source={LottieAssets.loginLogo} style={styles.lottie} loop />
+          </View>
+          <Typography variant="heading" weight="medium" color={palette.white} style={styles.tagline}>
+            Find your Vibe!
+          </Typography>
         </View>
-        <Typography variant="heading" weight="medium" style={styles.tagline}>
-          Find your Vibe!
-        </Typography>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   safe: {
     flex: 1,
-    backgroundColor: palette.white,
+    backgroundColor: 'transparent',
   },
   content: {
     flex: 1,

@@ -12,6 +12,12 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(FontAssets);
 
   useEffect(() => {
+    if (fontError) {
+      console.error('Failed to load fonts:', fontError);
+    }
+  }, [fontError]);
+
+  useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
@@ -30,6 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="select-city" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="menu" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="component-showcase" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </AppProviders>
   );

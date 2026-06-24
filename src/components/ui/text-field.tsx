@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { fontFamilyForWeight } from '@/constants/fonts';
+import { fontStyleForWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.textLabel,
   },
   inputShell: {
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: fontFamilyForWeight('regular'),
+    ...fontStyleForWeight('regular'),
     color: palette.textPrimary,
     padding: 0,
   },
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   errorIconMark: {
     fontSize: 11,
     lineHeight: 12,
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
     color: palette.white,
   },
 });

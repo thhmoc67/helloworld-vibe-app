@@ -1,9 +1,11 @@
-export const VIBE_TAGS = [
-  { id: 'chill', label: 'Chill', emoji: '😌' },
-  { id: 'creative', label: 'Creative', emoji: '🎨' },
-  { id: 'fitness', label: 'Fitness', emoji: '💪' },
-  { id: 'gaming', label: 'Gaming', emoji: '🎮' },
-] as const;
+import palette from '@/constants/palette';
+
+/** Home hero background — linear gradient top → bottom per Figma. */
+export const HOME_BACKGROUND_GRADIENT = {
+  colors: [palette.homeGradientTop, palette.homeGradientBottom] as const,
+  start: { x: 0, y: 0 } as const,
+  end: { x: 0, y: 1 } as const,
+};
 
 export const NEIGHBORHOODS = [
   {
@@ -44,3 +46,13 @@ export const FEED_ITEMS = [
   { id: '1', caption: 'Hi guys,', image: 'loginBentoBedroomSmall' as const },
   { id: '2', caption: 'Room tour', image: 'loginBento1' as const },
 ] as const;
+
+export {
+  VIBE_CHIP_GRADIENT,
+  VIBE_OPTIONS,
+  type VibeId,
+  type VibeOption,
+} from '@/constants/vibes';
+
+/** @deprecated Use `VIBE_OPTIONS` from `@/constants/vibes`. */
+export { VIBE_OPTIONS as VIBE_TAGS } from '@/constants/vibes';

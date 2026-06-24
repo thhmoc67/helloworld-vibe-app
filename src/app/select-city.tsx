@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SymbolView } from 'expo-symbols';
 
 import { HwIcon } from '@/components/hw-icon';
 import { HwLottie } from '@/components/hw-lottie';
@@ -22,13 +23,29 @@ export default function SelectCityScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <View style={styles.topBar}>
+        <Pressable
+          onPress={() => router.back()}
+          style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back">
+          <SymbolView
+            name="chevron.left"
+            size={18}
+            weight="semibold"
+            tintColor={palette.gray[800]}
+          />
+        </Pressable>
+      </View>
+
       <View style={styles.header}>
         <HwLottie source={LottieAssets.loginLoading} style={styles.headerLottie} loop />
         <Typography variant="heading" weight="bold" style={styles.headerTitle}>
           Pick your city to get started!
         </Typography>
       </View>
+
       <FlatList
         data={CITIES}
         keyExtractor={(item) => item.name}
@@ -59,10 +76,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: palette.blue[50],
   },
+  topBar: {
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: palette.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  backButtonPressed: {
+    opacity: 0.85,
+  },
   header: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 12,
     gap: 8,
   },

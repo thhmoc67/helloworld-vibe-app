@@ -1,6 +1,6 @@
 import { StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
 
-import { TypeScale, fontFamilyForWeight, type FontWeight } from '@/constants/fonts';
+import { TypeScale, fontStyleForWeight, type FontWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
 
 type DisplaySize = keyof typeof TypeScale.display;
@@ -20,7 +20,7 @@ const legacyVariantMap: Record<
   label: { variant: 'text', size: 'sm', weight: 'medium' },
 };
 
-type TypographyProps = TextProps & {
+export type TypographyProps = TextProps & {
   variant?: LegacyVariant | 'display' | 'text';
   size?: DisplaySize | TextSize;
   weight?: FontWeight;
@@ -49,7 +49,8 @@ export function Typography({
     <Text
       style={[
         scale as TextStyle,
-        { fontFamily: fontFamilyForWeight(resolvedWeight), color },
+        fontStyleForWeight(resolvedWeight),
+        { color },
         style,
       ]}
       {...props}

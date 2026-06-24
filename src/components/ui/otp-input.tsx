@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { fontFamilyForWeight } from '@/constants/fonts';
+import { fontStyleForWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 28,
     lineHeight: 36,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.textPrimary,
   },
   digitPlaceholder: {

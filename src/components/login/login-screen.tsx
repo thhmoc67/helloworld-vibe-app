@@ -14,7 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { LoginBento } from '@/components/login/login-bento'
 import { Button } from '@/components/ui/button'
-import { fontFamilyForWeight } from '@/constants/fonts'
+import { fontStyleForWeight } from '@/constants/fonts'
 import palette from '@/constants/palette'
 import { Radius } from '@/constants/theme'
 import { useSendOtpMutation } from '@/queries/use-auth'
@@ -194,13 +194,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     lineHeight: 32,
-    fontFamily: fontFamilyForWeight('bold'),
+    ...fontStyleForWeight('bold'),
     color: palette.black
   },
   label: {
     fontSize: 12,
     lineHeight: 18,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.gray[600]
   },
   inputBox: {
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     left: 16,
     fontSize: 16,
     lineHeight: 48,
-    fontFamily: fontFamilyForWeight('regular'),
+    ...fontStyleForWeight('regular'),
     color: palette.gray[400]
   },
   input: {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20,
     height: 48,
-    fontFamily: fontFamilyForWeight('regular'),
+    ...fontStyleForWeight('regular'),
     color: palette.black,
     ...(Platform.OS === 'android'
       ? { includeFontPadding: false, textAlignVertical: 'center' as const }
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   },
   accessoryDone: {
     fontSize: 17,
-    fontFamily: fontFamilyForWeight('medium'),
+    ...fontStyleForWeight('medium'),
     color: palette.blue[600]
   }
 })

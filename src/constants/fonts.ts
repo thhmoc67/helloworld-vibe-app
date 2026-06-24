@@ -1,3 +1,5 @@
+import { Platform, type TextStyle } from 'react-native';
+
 /** Satoshi type scale from brand typography guidelines. */
 export const TypeScale = {
   display: {
@@ -17,22 +19,53 @@ export const TypeScale = {
   },
 } as const;
 
+/** Registered family name for Satoshi Variable (must match useFonts key). */
 export const Fonts = {
-  satoshiRegular: 'Satoshi-Regular',
-  satoshiMedium: 'Satoshi-Medium',
-  satoshiBold: 'Satoshi-Bold',
+  satoshi: 'Satoshi Variable',
 } as const;
 
 export const FontAssets = {
-  [Fonts.satoshiRegular]: require('../../assets/fonts/Satoshi-Regular.ttf'),
-  [Fonts.satoshiMedium]: require('../../assets/fonts/Satoshi-Medium.ttf'),
-  [Fonts.satoshiBold]: require('../../assets/fonts/Satoshi-Bold.ttf'),
+  [Fonts.satoshi]: require('../../assets/fonts/Satoshi-Variable.ttf'),
 } as const;
 
-export type FontWeight = 'regular' | 'medium' | 'bold';
+/** CSS-style weight names mapped to Satoshi variable axis values. */
+export const FONT_WEIGHTS = [
+  'thin',
+  'extralight',
+  'light',
+  'regular',
+  'medium',
+  'semibold',
+  'bold',
+  'extrabold',
+  'black',
+] as const;
 
-export function fontFamilyForWeight(weight: FontWeight): string {
-  if (weight === 'bold') return Fonts.satoshiBold;
-  if (weight === 'medium') return Fonts.satoshiMedium;
-  return Fonts.satoshiRegular;
+export type FontWeight = (typeof FONT_WEIGHTS)[number];
+
+/** Numeric CSS weight for each token. */
+export const FONT_WEIGHT_VALUES: Record<FontWeight, TextStyle['fontWeight']> = {
+  thin: '100',
+  extralight: '200',
+  light: '300',
+  regular: '400',
+  medium: '500',
+  semibold: '600',
+  bold: '700',
+  extrabold: '800',
+  black: '900',
+};
+
+/** @deprecated Use `fontStyleForWeight` — kept for legacy imports. */
+export function fontFamilyForWeight(_weight: FontWeight = 'regular'): string {
+  return Fonts.satoshi;
+}
+
+/** Satoshi Variable: one family + numeric weight axis. */
+export function fontStyleForWeight(weight: FontWeight = 'regular'): TextStyle {
+  return {
+    fontFamily: Fonts.satoshi,
+    fontWeight: FONT_WEIGHT_VALUES[weight],
+    fontStyle: 'normal',
+  };
 }
