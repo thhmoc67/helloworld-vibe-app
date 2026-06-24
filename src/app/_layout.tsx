@@ -34,6 +34,11 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="otp" />
         <Stack.Screen name="select-city" />
+        <Stack.Screen name="search" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="srp" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="hdp" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="booking" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="booking-success" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="menu" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="component-showcase" options={{ animation: 'slide_from_right' }} />

@@ -9,7 +9,28 @@ import { Button } from '@/components/ui/button';
 import { fontStyleForWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+import { useOptionalPropertyActions } from '@/providers/property-actions-provider';
+import { useOptionalWishlist } from '@/providers/wishlist-provider';
+import { useSelectedCity } from '@/stores/auth-store';
 import type { PropertyBadge, PropertyListing } from '@/types/property';
+import { COMING_SOON_IMAGE_URI } from '@/utils/images';
+import { getImageUriFromSource, shareProperty } from '@/utils/share-property';
+
+function resolvePropertyImages(images: PropertyListing['images']) {
+  const validImages = images.filter((image) => {
+    if (typeof image === 'number') return true;
+    if (typeof image === 'object' && image !== null && 'uri' in image) {
+      return Boolean(image.uri);
+    }
+    return true;
+  });
+
+  if (validImages.length > 0) {
+    return validImages;
+  }
+
+  return [{ uri: COMING_SOON_IMAGE_URI }];
+}
 
 type PropertyCardProps = {
   property: PropertyListing;
@@ -55,30 +76,96 @@ export function PropertyCard({
   onTakeTour,
   onFavoritePress,
   onSharePress,
-  isFavorite = false,
+  isFavorite,
 }: PropertyCardProps) {
-  const imageCount = property.images.length;
+  const wishlist = useOptionalWishlist();
+  const propertyActions = useOptionalPropertyActions();
+  const city = useSelectedCity();
+  const propertyId = Number(property.id);
+  const favorited = isFavorite ?? (Number.isFinite(propertyId) ? wishlist?.isWishlisted(propertyId) : false);
+
+  const cardImages = resolvePropertyImages(property.images);
+  const imageCount = cardImages.length;
   const [imageIndex, setImageIndex] = useState(0);
-  const currentImage = property.images[imageIndex] ?? property.images[0];
+  const [useFallbackImage, setUseFallbackImage] = useState(false);
+  const currentImage = useFallbackImage
+    ? { uri: COMING_SOON_IMAGE_URI }
+    : (cardImages[imageIndex] ?? cardImages[0]);
 
   function showPreviousImage() {
     if (imageCount <= 1) return;
+    setUseFallbackImage(false);
     setImageIndex((index) => (index === 0 ? imageCount - 1 : index - 1));
   }
 
   function showNextImage() {
     if (imageCount <= 1) return;
+    setUseFallbackImage(false);
     setImageIndex((index) => (index === imageCount - 1 ? 0 : index + 1));
+  }
+
+  function handleFavoritePress() {
+    if (onFavoritePress) {
+      onFavoritePress();
+      return;
+    }
+    if (Number.isFinite(propertyId)) {
+      void wishlist?.toggleWishlist(propertyId, property.name);
+    }
+  }
+
+  function handleSharePress() {
+    if (onSharePress) {
+      onSharePress();
+      return;
+    }
+    void shareProperty({ name: property.name, id: property.id });
+  }
+
+  function handleRequestCallback() {
+    if (onRequestCallback) {
+      onRequestCallback();
+      return;
+    }
+    if (!Number.isFinite(propertyId)) return;
+    propertyActions?.openRequestCallback({
+      propertyId,
+      propertyName: property.name,
+      location: property.location,
+      city,
+    });
+  }
+
+  function handleTakeTour() {
+    if (onTakeTour) {
+      onTakeTour();
+      return;
+    }
+    if (!Number.isFinite(propertyId)) return;
+    propertyActions?.openScheduleVisit({
+      propertyId,
+      propertyName: property.name,
+      location: property.location,
+      city,
+      startingRent: property.startingRent,
+      imageUri: getImageUriFromSource(cardImages[0]),
+    });
   }
 
   return (
     <View style={[styles.cardShadow, style]}>
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [styles.card, pressed && onPress ? styles.cardPressed : null]}
-        accessibilityRole={onPress ? 'button' : undefined}>
-      <View style={styles.mediaSection}>
-        <Image source={currentImage} style={styles.heroImage} contentFit="cover" />
+      <View style={styles.card}>
+        <Pressable
+          onPress={onPress}
+          style={({ pressed }) => [pressed && onPress ? styles.cardPressed : null]}
+          accessibilityRole={onPress ? 'button' : undefined}>
+          <View style={styles.mediaSection}>
+        <Image
+          source={currentImage}
+          style={styles.heroImage}
+          contentFit="cover"
+          onError={() => setUseFallbackImage(true)}
+        />
 
         {imageCount > 1 ? (
           <>
@@ -103,7 +190,7 @@ export function PropertyCard({
               <SymbolView name="chevron.right" size={14} weight="semibold" tintColor={palette.white} />
             </Pressable>
             <View style={styles.dotsRow}>
-              {property.images.map((_, index) => (
+              {cardImages.map((_, index) => (
                 <View
                   key={`dot-${property.id}-${index}`}
                   style={[styles.dot, index === imageIndex ? styles.dotActive : null]}
@@ -154,21 +241,21 @@ export function PropertyCard({
             <Pressable
               onPress={(event) => {
                 event.stopPropagation();
-                onFavoritePress?.();
+                handleFavoritePress();
               }}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel={isFavorite ? 'Remove from wishlist' : 'Add to wishlist'}>
+              accessibilityLabel={favorited ? 'Remove from wishlist' : 'Add to wishlist'}>
               <SymbolView
-                name={isFavorite ? 'heart.fill' : 'heart'}
+                name={favorited ? 'heart.fill' : 'heart'}
                 size={20}
-                tintColor={palette.gray[800]}
+                tintColor={favorited ? palette.red[500] : palette.gray[800]}
               />
             </Pressable>
             <Pressable
               onPress={(event) => {
                 event.stopPropagation();
-                onSharePress?.();
+                handleSharePress();
               }}
               hitSlop={8}
               accessibilityRole="button"
@@ -189,18 +276,29 @@ export function PropertyCard({
           <Text style={styles.rentLabel}>Starting Rent</Text>
           <Text style={styles.rentValue}>{formatRent(property.startingRent)}</Text>
         </View>
+      </View>
+        </Pressable>
 
         <View style={styles.actionsRow}>
           <Button
             label="Request Callback"
             variant="outline"
-            onPress={onRequestCallback}
+            onPress={(event) => {
+              event.stopPropagation();
+              handleRequestCallback();
+            }}
             style={styles.actionButton}
           />
-          <Button label="Take a Tour" onPress={onTakeTour} style={styles.actionButton} />
+          <Button
+            label="Take a Tour"
+            onPress={(event) => {
+              event.stopPropagation();
+              handleTakeTour();
+            }}
+            style={styles.actionButton}
+          />
         </View>
       </View>
-      </Pressable>
     </View>
   );
 }
@@ -321,7 +419,7 @@ const styles = StyleSheet.create({
   body: {
     paddingHorizontal: 16,
     paddingTop: 14,
-    paddingBottom: 16,
+    paddingBottom: 0,
     gap: 10,
   },
   titleRow: {
@@ -402,10 +500,14 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 4,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   actionButton: {
     flex: 1,
+    flexBasis: 0,
     minHeight: 44,
+    paddingHorizontal: 12,
   },
 });

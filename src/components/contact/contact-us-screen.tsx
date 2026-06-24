@@ -17,30 +17,40 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 
+import { sendOtpLeads, uploadContactLead } from '@/api/contact';
+import { CallbackRequestSuccess } from '@/components/callback/callback-request-success';
 import { ProfileIcon } from '@/components/profile-icon';
 import { Button } from '@/components/ui/button';
+import { OtpInput } from '@/components/ui/otp-input';
 import { TextField } from '@/components/ui/text-field';
 import { fontStyleForWeight } from '@/constants/fonts';
 import { ImageAssets } from '@/constants/assets';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { useAuthStore } from '@/stores/auth-store';
 
 const HELP_DESK_NUMBER = '8880008888';
 const HELP_DESK_DISPLAY = '888 000 88 88';
+
+type ContactStep = 'form' | 'otp' | 'success';
 
 const compactLabel = { fontSize: 12, lineHeight: 18, color: palette.gray[700] };
 
 export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarInset = useTabBarInset(embedded ? 0 : 24);
   const phoneRef = useRef<TextInput>(null);
 
+  const [step, setStep] = useState<ContactStep>('form');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [location, setLocation] = useState('');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; phone?: string; otp?: string }>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const storedMobile = useAuthStore((state) => state.mobile);
   const storedCity = useAuthStore((state) => state.selectedCity);
@@ -64,10 +74,57 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
     if (!validate()) return;
 
     setLoading(true);
+    setErrorMessage(null);
     Keyboard.dismiss();
-    // TODO: wire uploadContactLead API
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const response = await sendOtpLeads(phone);
     setLoading(false);
+
+    if (response.Status === 'Success') {
+      setStep('otp');
+      return;
+    }
+
+    setErrorMessage(response.message ?? 'Could not send OTP. Please try again.');
+  }
+
+  async function onSubmitOtp() {
+    if (otp.length !== 6) {
+      setErrors((prev) => ({ ...prev, otp: 'Please enter the 6-digit OTP' }));
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage(null);
+    const response = await uploadContactLead({
+      name: name.trim(),
+      phone,
+      location: location.trim() || storedCity || 'HelloWorld',
+      city: storedCity ?? undefined,
+      otp: Number.parseInt(otp, 10),
+      srp: false,
+      propertyName: 'HelloWorld',
+    });
+    setLoading(false);
+
+    if (response.success) {
+      setStep('success');
+      return;
+    }
+
+    if (response.message === 'OTP is Invalid') {
+      setErrors((prev) => ({ ...prev, otp: 'Invalid OTP. Please try again.' }));
+      return;
+    }
+
+    setErrorMessage(response.message ?? 'Something went wrong. Please try again.');
+  }
+
+  function onSuccessDone() {
+    setStep('form');
+    setName('');
+    setOtp('');
+    setErrorMessage(null);
+    setErrors({});
     if (!embedded) {
       router.back();
     }
@@ -114,14 +171,54 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               styles.scroll,
-              { paddingBottom: Math.max(insets.bottom, 16) + 24 },
+              {
+                paddingBottom: embedded
+                  ? tabBarInset
+                  : Math.max(insets.bottom, 16) + 24,
+              },
             ]}>
-            <Image
-              source={ImageAssets.contactIllustration}
-              style={styles.illustration}
-              contentFit="contain"
-            />
+            {step === 'form' ? (
+              <Image
+                source={ImageAssets.contactIllustration}
+                style={styles.illustration}
+                contentFit="contain"
+              />
+            ) : null}
 
+            {step === 'success' ? (
+              <CallbackRequestSuccess onDone={onSuccessDone} />
+            ) : step === 'otp' ? (
+              <>
+                <Text style={styles.headline}>Verify your number</Text>
+                <Text style={styles.otpSubtitle}>Enter the 6-digit code sent to +91-{phone}</Text>
+                <OtpInput
+                  value={otp}
+                  onChange={(value) => {
+                    setOtp(value);
+                    if (errors.otp) setErrors((prev) => ({ ...prev, otp: undefined }));
+                  }}
+                />
+                {errors.otp ? <Text style={styles.error}>{errors.otp}</Text> : null}
+                {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+                <View style={styles.otpActions}>
+                  <Button
+                    label="Edit phone"
+                    variant="outline"
+                    onPress={() => setStep('form')}
+                    disabled={loading}
+                    style={styles.otpActionButton}
+                  />
+                  <Button
+                    label={loading ? 'Submitting...' : 'Submit'}
+                    onPress={onSubmitOtp}
+                    loading={loading}
+                    disabled={otp.length !== 6}
+                    style={styles.otpActionButton}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
             <Text style={styles.headline}>Let us help you!</Text>
 
             <View style={styles.form}>
@@ -137,6 +234,7 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
                 autoCapitalize="words"
                 error={errors.name}
                 containerStyle={styles.field}
+                autoFocus
               />
 
               <View style={styles.field}>
@@ -180,6 +278,8 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
               style={styles.submitButton}
             />
 
+            {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+
             <View style={styles.divider} />
 
             <Pressable
@@ -203,6 +303,8 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
                 />
               </View>
             </Pressable>
+              </>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -330,6 +432,21 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     width: '100%',
+  },
+  otpSubtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    ...fontStyleForWeight('medium'),
+    color: palette.gray[600],
+    textAlign: 'center',
+    marginTop: -8,
+  },
+  otpActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  otpActionButton: {
+    flex: 1,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

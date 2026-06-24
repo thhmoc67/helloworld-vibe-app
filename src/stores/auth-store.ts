@@ -6,10 +6,12 @@ type AuthState = {
   token: string | null;
   mobile: string | null;
   selectedCity: string | null;
+  selectedLocality: string | null;
   hydrated: boolean;
   setToken: (token: string | null) => void;
   setMobile: (mobile: string | null) => void;
   setSelectedCity: (city: string | null) => void;
+  setSelectedLocality: (locality: string | null) => void;
   clearSession: () => void;
   setHydrated: (hydrated: boolean) => void;
 };
@@ -20,10 +22,12 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       mobile: null,
       selectedCity: null,
+      selectedLocality: null,
       hydrated: false,
       setToken: (token) => set({ token }),
       setMobile: (mobile) => set({ mobile }),
-      setSelectedCity: (selectedCity) => set({ selectedCity }),
+      setSelectedCity: (selectedCity) => set({ selectedCity, selectedLocality: null }),
+      setSelectedLocality: (selectedLocality) => set({ selectedLocality }),
       clearSession: () => set({ token: null, mobile: null }),
       setHydrated: (hydrated) => set({ hydrated }),
     }),
@@ -34,6 +38,7 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         mobile: state.mobile,
         selectedCity: state.selectedCity,
+        selectedLocality: state.selectedLocality,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);
@@ -48,6 +53,10 @@ export function useIsAuthenticated() {
 
 export function useSelectedCity() {
   return useAuthStore((state) => state.selectedCity ?? 'Bangalore');
+}
+
+export function useSelectedLocality() {
+  return useAuthStore((state) => state.selectedLocality);
 }
 
 export function useAuthHydrated() {

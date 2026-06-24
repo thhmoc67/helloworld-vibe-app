@@ -1,4 +1,5 @@
 import {
+  Pressable,
   StyleSheet,
   TextInput,
   View,
@@ -7,7 +8,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { SymbolView } from 'expo-symbols';
 
 import { fontStyleForWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
@@ -17,21 +17,47 @@ const SHADOW_OFFSET = { x: 4, y: 5 };
 
 type SearchInputProps = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;
+  onPress?: () => void;
+  showShadow?: boolean;
 };
 
-export function SearchInput({ containerStyle, style, ...props }: SearchInputProps) {
+export function SearchInput({
+  containerStyle,
+  style,
+  onPress,
+  editable,
+  showShadow = true,
+  ...props
+}: SearchInputProps) {
+  const isPressable = Boolean(onPress);
+  const field = (
+    <View style={styles.field}>
+      <TextInput
+        placeholder="Search for Locality, Office or College"
+        placeholderTextColor={palette.textPlaceholder}
+        style={[styles.input, style]}
+        editable={isPressable ? false : editable}
+        pointerEvents={isPressable ? 'none' : 'auto'}
+        {...props}
+      />
+      {/* <SymbolView name="magnifyingglass" size={20} tintColor={palette.grey} /> */}
+    </View>
+  );
+
   return (
-    <View style={[styles.wrapper, containerStyle]}>
-      <View style={styles.shadow} />
-      <View style={styles.field}>
-        <TextInput
-          placeholder="Search for Locality, Office or College"
-          placeholderTextColor={palette.textPlaceholder}
-          style={[styles.input, style]}
-          {...props}
-        />
-        <SymbolView name="magnifyingglass" size={20} tintColor={palette.grey} />
-      </View>
+    <View style={[styles.wrapper, !showShadow && styles.wrapperFlat, containerStyle]}>
+      {showShadow ? <View style={styles.shadow} /> : null}
+      {isPressable ? (
+        <Pressable
+          onPress={onPress}
+          style={({ pressed }) => [pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Search for locality, office or college">
+          {field}
+        </Pressable>
+      ) : (
+        field
+      )}
     </View>
   );
 }
@@ -41,6 +67,10 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: SHADOW_OFFSET.x,
     marginBottom: SHADOW_OFFSET.y,
+  },
+  wrapperFlat: {
+    marginRight: 0,
+    marginBottom: 0,
   },
   shadow: {
     position: 'absolute',
@@ -64,6 +94,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.grey,
     backgroundColor: palette.white,
+  },
+  pressed: {
+    opacity: 0.96,
   },
   input: {
     flex: 1,

@@ -45,6 +45,7 @@ export const ImageAssets = {
   contactIllustration: require('../../assets/bundled/contact/illustration.png'),
   appIcon: require('../../assets/images/icon.png'),
   splashIcon: require('../../assets/images/splash-icon.png'),
+  hdpTrophy: require('../../assets/hw-vibe/HDP/Top choice trophy.png'),
 } as const;
 
 export const TabBarIcons = {

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -28,10 +29,13 @@ import {
   NEIGHBORHOODS,
 } from '@/constants/home';
 import palette from '@/constants/palette';
-import { SAMPLE_PROPERTIES } from '@/constants/sample-property';
+import { TAB_BAR_HEIGHT } from '@/constants/tab-bar';
 import { Radius } from '@/constants/theme';
 import { VIBE_OPTIONS } from '@/constants/vibes';
-import { useSelectedCity } from '@/stores/auth-store';
+import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
+import { useSrpProperties } from '@/queries/use-srp-properties';
+import { useSelectedCity, useSelectedLocality } from '@/stores/auth-store';
+import type { PropertyListing } from '@/types/property';
 
 type ImageKey = keyof typeof ImageAssets;
 
@@ -48,10 +52,10 @@ function SectionTitle({
 }) {
   return (
     <View style={styles.sectionTitleRow}>
-      <Typography variant="text" size="xl" weight="bold">
+      <Typography variant="text" size="xl" weight="medium">
         {prefix}
       </Typography>
-      <GradientText variant="text" size="xl" weight="bold" style={styles.sectionHighlight}>
+      <GradientText variant="text" size="xl" weight="black" style={styles.sectionHighlight}>
         {highlight}
       </GradientText>
     </View>
@@ -66,9 +70,13 @@ const HEADER_SHADOW_THRESHOLD = 8;
 export function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarInset = useTabBarInset();
   const { width, height } = useWindowDimensions();
 
   const city = useSelectedCity();
+  const locality = useSelectedLocality();
+  const { data: srpData, isLoading: isLoadingProperties } = useSrpProperties(city);
+  const properties = srpData?.listings ?? [];
   const [selectedVibes, setSelectedVibes] = useState<string[]>(
     VIBE_OPTIONS.map((tag) => tag.id),
   );
@@ -84,6 +92,24 @@ export function HomeScreen() {
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const scrolled = event.nativeEvent.contentOffset.y > HEADER_SHADOW_THRESHOLD;
     setHeaderScrolled((current) => (current === scrolled ? current : scrolled));
+  }
+
+  function openProperty(property: PropertyListing) {
+    const image =
+      typeof property.images[0] === 'object' &&
+      property.images[0] &&
+      'uri' in property.images[0]
+        ? property.images[0].uri
+        : undefined;
+
+    router.push({
+      pathname: '/hdp',
+      params: {
+        id: property.id,
+        name: property.name,
+        image,
+      },
+    });
   }
 
   return (
@@ -104,7 +130,7 @@ export function HomeScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={{
           paddingTop: stickyHeaderHeight,
-          paddingBottom: insets.bottom + 100,
+          paddingBottom: tabBarInset,
           flexGrow: 1,
         }}>
         <View style={styles.heroSection}>
@@ -125,7 +151,12 @@ export function HomeScreen() {
             </Typography>
           </Typography>
 
-          <SearchInput editable={false} containerStyle={styles.searchInputMargin} />
+          <SearchInput
+            editable={false}
+            value={locality ?? ''}
+            onPress={() => router.push('/search')}
+            containerStyle={styles.searchInputMargin}
+          />
 
           <VibeSelectionList
             vibes={VIBE_OPTIONS}
@@ -182,15 +213,30 @@ export function HomeScreen() {
           />
 
           <SectionTitle prefix="This could be your " highlight="Home!" />
-          <HwCarousel
-            data={SAMPLE_PROPERTIES}
-            width={slideWidth}
-            height={PROPERTY_CAROUSEL_HEIGHT}
-            style={styles.carouselWrap}
-            renderItem={({ item }) => (
-              <PropertyCard property={item} style={{ width: cardWidth, alignSelf: 'center' }} />
-            )}
-          />
+          {isLoadingProperties ? (
+            <View style={styles.propertiesLoader}>
+              <ActivityIndicator color={palette.helloLime} />
+            </View>
+          ) : properties.length > 0 ? (
+            <HwCarousel
+              key={city}
+              data={properties}
+              width={slideWidth}
+              height={PROPERTY_CAROUSEL_HEIGHT}
+              style={styles.carouselWrap}
+              renderItem={({ item }) => (
+                <PropertyCard
+                  property={item}
+                  style={{ width: cardWidth, alignSelf: 'center' }}
+                  onPress={() => openProperty(item)}
+                />
+              )}
+            />
+          ) : (
+            <Typography variant="text" size="sm" color={palette.textSecondary} style={styles.emptyProperties}>
+              No properties found in {city} right now.
+            </Typography>
+          )}
 
           <SectionTitle prefix="Straight from the " highlight="Feed!" />
           <HwParallaxCarousel
@@ -268,7 +314,7 @@ export function HomeScreen() {
       </View>
 
       {showFeedback ? (
-        <View style={[styles.feedbackBanner, { bottom: insets.bottom + 72 }]}>
+        <View style={[styles.feedbackBanner, { bottom: insets.bottom + TAB_BAR_HEIGHT + 8 }]}>
           <Typography variant="text" size="xs" color={palette.textSecondary} style={styles.feedbackText}>
             How was your visit to HW Mahaveer? ›
           </Typography>
@@ -387,6 +433,15 @@ const styles = StyleSheet.create({
   },
   carouselWrap: {
     marginHorizontal: -4,
+  },
+  propertiesLoader: {
+    height: PROPERTY_CAROUSEL_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyProperties: {
+    paddingVertical: 24,
+    textAlign: 'center',
   },
   neighborhoodCard: {
     height: 200,

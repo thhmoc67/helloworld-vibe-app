@@ -47,6 +47,9 @@ export function Button({
         <ActivityIndicator color={palette.gray[800]} />
       ) : (
         <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
           style={[
             styles.label,
             isPrimary ? styles.primaryLabel : isOutline ? styles.outlineLabel : styles.textLabel,
