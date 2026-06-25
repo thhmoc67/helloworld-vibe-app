@@ -6,6 +6,7 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { FilterCheckbox } from '@/components/ui/filter-checkbox';
 import { Typography } from '@/components/ui/typography';
+import { formatAmenityLabel } from '@/utils/amenity-format';
 import {
   SRP_AMENITIES,
   SRP_BUDGET_PRESETS,
@@ -135,7 +136,7 @@ export function SrpFiltersSheet({ visible, filters, onClose, onApply }: SrpFilte
             {SRP_AMENITIES.map((amenity) => (
               <View key={amenity} style={styles.amenityItem}>
                 <FilterCheckbox
-                  label={amenity}
+                  label={formatAmenityLabel(amenity)}
                   checked={draft.amenities.includes(amenity)}
                   onChange={() => {
                     const next = draft.amenities.includes(amenity)

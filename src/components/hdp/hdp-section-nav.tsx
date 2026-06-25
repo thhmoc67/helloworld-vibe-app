@@ -12,46 +12,52 @@ type HdpSectionNavProps = {
 
 export function HdpSectionNav({ activeId, onChange }: HdpSectionNavProps) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.content}>
-      {HDP_SECTION_NAV.map((item) => {
-        const isActive = item.id === activeId;
+    <View style={styles.wrap}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.content}>
+        {HDP_SECTION_NAV.map((item) => {
+          const isActive = item.id === activeId;
 
-        return (
-          <Pressable
-            key={item.id}
-            onPress={() => onChange(item.id)}
-            style={[styles.pill, isActive && styles.pillActive]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: isActive }}>
-            <Typography
-              variant="text"
-              size="sm"
-              weight={isActive ? 'bold' : 'medium'}
-              color={isActive ? palette.gray[900] : palette.gray[600]}>
-              {item.label}
-            </Typography>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+          return (
+            <Pressable
+              key={item.id}
+              onPress={() => onChange(item.id)}
+              style={[styles.pill, isActive && styles.pillActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}>
+              <Typography
+                variant="text"
+                size="sm"
+                weight={isActive ? 'bold' : 'medium'}
+                color={isActive ? palette.gray[900] : palette.gray[800]}>
+                {item.label}
+              </Typography>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: {
+    backgroundColor: palette.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: palette.gray[200],
+  },
   content: {
-    gap: 8,
-    paddingVertical: 2,
+    gap: 20,
+    paddingVertical: 12,
   },
   pill: {
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: Radius.full,
-    backgroundColor: palette.gray[100],
   },
   pillActive: {
-    backgroundColor: palette.lime[100],
+    backgroundColor: palette.lime[300],
   },
 });

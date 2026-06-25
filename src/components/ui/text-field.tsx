@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 import {
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -108,11 +109,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    minHeight: 48,
     borderWidth: 1,
     borderColor: palette.borderDefault,
     borderRadius: Radius.sm,
     paddingHorizontal: 14,
-    paddingVertical: 12,
     backgroundColor: palette.white,
   },
   inputFocused: {
@@ -145,10 +146,23 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    lineHeight: 24,
     ...fontStyleForWeight('regular'),
     color: palette.textPrimary,
     padding: 0,
+    margin: 0,
+    ...Platform.select({
+      ios: {
+        paddingVertical: 14,
+      },
+      android: {
+        paddingVertical: 12,
+        textAlignVertical: 'center',
+        includeFontPadding: false,
+      },
+      default: {
+        paddingVertical: 14,
+      },
+    }),
   },
   inputTextDisabled: {
     color: palette.textSecondary,

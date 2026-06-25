@@ -19,6 +19,8 @@ export type HwCarouselProps<T> = {
   renderItem: (info: HwCarouselRenderInfo<T>) => ReactNode;
   loop?: boolean;
   showPagination?: boolean;
+  paginationDotColor?: string;
+  paginationActiveDotColor?: string;
   style?: StyleProp<ViewStyle>;
   onSnapToItem?: (index: number) => void;
   enabled?: boolean;
@@ -31,6 +33,8 @@ export function HwCarousel<T extends object>({
   renderItem,
   loop = false,
   showPagination = true,
+  paginationDotColor,
+  paginationActiveDotColor,
   style,
   onSnapToItem,
   enabled = true,
@@ -63,7 +67,13 @@ export function HwCarousel<T extends object>({
         )}
       />
       {showPagination && data.length > 1 ? (
-        <CarouselPagination progress={progress} data={data} onPress={handlePaginationPress} />
+        <CarouselPagination
+          progress={progress}
+          data={data}
+          onPress={handlePaginationPress}
+          dotColor={paginationDotColor}
+          activeDotColor={paginationActiveDotColor}
+        />
       ) : null}
     </View>
   );

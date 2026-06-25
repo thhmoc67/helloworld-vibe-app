@@ -13,7 +13,9 @@ import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HdpSimilarPropertiesSection } from '@/components/hdp/hdp-similar-properties-section';
 import { HdpAmenityPills } from '@/components/hdp/hdp-amenity-pills';
 import { HdpFaqList } from '@/components/hdp/hdp-faq-list';
 import { HdpFooterBar } from '@/components/hdp/hdp-footer-bar';
@@ -21,24 +23,23 @@ import { HdpVisitSheet } from '@/components/hdp/hdp-visit-sheet';
 import { HdpHeroCarousel } from '@/components/hdp/hdp-hero-carousel';
 import { HdpPropertyHeader } from '@/components/hdp/hdp-property-header';
 import { HdpRatingCard } from '@/components/hdp/hdp-rating-card';
+import { HdpReviewsSection } from '@/components/hdp/hdp-reviews-section';
 import { HdpSectionNav } from '@/components/hdp/hdp-section-nav';
 import { HdpVibeMatchCard } from '@/components/hdp/hdp-vibe-match-card';
 import { ScrollRevealHeader } from '@/components/navigation/scroll-reveal-header';
-import { PropertyCard } from '@/components/property/property-card';
-import { HwCarousel } from '@/components/ui/carousel';
 import { Typography } from '@/components/ui/typography';
-import { mapApiPropertyToListing } from '@/api/property';
 import {
   HDP_SAMPLE_AMENITIES,
   HDP_SAMPLE_FAQ,
+  HDP_DUMMY_REVIEWS,
   type HdpSectionId,
 } from '@/constants/hdp';
-import { SAMPLE_PROPERTIES } from '@/constants/sample-property';
 import palette from '@/constants/palette';
-import { Radius } from '@/constants/theme';
+import { useSimilarProperties } from '@/hooks/use-similar-properties';
 import { usePropertyDetail } from '@/queries/use-property-detail';
 import { usePropertyCategories } from '@/queries/use-property-categories';
 import { useWishlist } from '@/providers/wishlist-provider';
+import { useSelectedCity } from '@/stores/auth-store';
 import { formatPropertyImageUrl, getPropertyImageKeys } from '@/utils/images';
 import { shareProperty } from '@/utils/share-property';
 
@@ -77,8 +78,11 @@ function buildAmenities(property: Record<string, any> | null) {
   return fromApi.length > 0 ? fromApi : [...HDP_SAMPLE_AMENITIES];
 }
 
+const HEADER_BAR_HEIGHT = 64;
+
 export function HdpScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { id, name, image } = useLocalSearchParams<{
     id: string;
@@ -90,14 +94,30 @@ export function HdpScreen() {
   const { data, isLoading, isError } = usePropertyDetail(propertyId);
   const { data: categories = [] } = usePropertyCategories(propertyId);
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const selectedCity = useSelectedCity();
   const numericPropertyId = Number(propertyId);
   const [activeSection, setActiveSection] = useState<HdpSectionId>('about');
   const [showFooter, setShowFooter] = useState(true);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [visitSheetOpen, setVisitSheetOpen] = useState(false);
   const [visitSheetTab, setVisitSheetTab] = useState<'schedule' | 'book'>('schedule');
+  const [showStickyTabs, setShowStickyTabs] = useState(false);
   const scrollY = useSharedValue(0);
   const lastScrollYRef = useRef(0);
+  const tabStickScrollYRef = useRef(0);
+  const tabAnchorRef = useRef<View>(null);
+  const stickyTop = insets.top + HEADER_BAR_HEIGHT;
+
+  const updateStickyTabs = useCallback((currentY: number) => {
+    setShowStickyTabs(currentY >= tabStickScrollYRef.current);
+  }, []);
+
+  const measureTabStickThreshold = useCallback(() => {
+    tabAnchorRef.current?.measureInWindow((_x, y) => {
+      tabStickScrollYRef.current = Math.max(0, y - stickyTop);
+      updateStickyTabs(lastScrollYRef.current);
+    });
+  }, [stickyTop, updateStickyTabs]);
 
   const updateFooterVisibility = useCallback((currentY: number) => {
     const previousY = lastScrollYRef.current;
@@ -120,6 +140,7 @@ export function HdpScreen() {
       const currentY = event.contentOffset.y;
       scrollY.value = currentY;
       runOnJS(updateFooterVisibility)(currentY);
+      runOnJS(updateStickyTabs)(currentY);
     },
   });
 
@@ -171,19 +192,25 @@ export function HdpScreen() {
   const visitsToday = property?.visits_today ?? property?.visit_count ?? 7;
   const reviewCount = property?.review_count ?? property?.reviews_count ?? 127;
 
-  const similarListings = useMemo(() => {
-    const raw =
-      (data as Record<string, unknown> | undefined)?.similarProperties ??
-      (data as Record<string, unknown> | undefined)?.similar_properties ??
-      property?.similarProperties ??
-      property?.similar_properties;
+  const propertyCity =
+    (typeof property?.city === 'string' && property.city) ||
+    selectedCity ||
+    'Bangalore';
+  const propertyLocality =
+    (typeof property?.address === 'object' &&
+    property.address &&
+    typeof (property.address as { locality?: string }).locality === 'string'
+      ? (property.address as { locality?: string }).locality
+      : null) ||
+    (typeof property?.locality === 'string' ? property.locality : null);
 
-    if (Array.isArray(raw) && raw.length > 0) {
-      return raw.map((item) => mapApiPropertyToListing(item));
-    }
-
-    return SAMPLE_PROPERTIES;
-  }, [data, property]);
+  const { listings: similarListings } = useSimilarProperties({
+    propertyId,
+    detail: data,
+    property,
+    city: propertyCity,
+    locality: propertyLocality,
+  });
 
   const showError = !isLoading && (isError || (data && !data.success && !property));
 
@@ -265,10 +292,16 @@ export function HdpScreen() {
                 reviewCount={reviewCount}
               />
 
-              <HdpVibeMatchCard matchPercent={vibeMatch} />
+              <HdpVibeMatchCard matchPercent={vibeMatch} propertyName={displayName} />
 
-              <HdpSectionNav activeId={activeSection} onChange={setActiveSection} />
+              <View
+                ref={tabAnchorRef}
+                style={styles.tabBarBleed}
+                onLayout={measureTabStickThreshold}>
+                <HdpSectionNav activeId={activeSection} onChange={setActiveSection} />
+              </View>
 
+              <View style={styles.sheetBody}>
               <View style={styles.section}>
                 <Typography variant="text" size="xl" weight="bold">
                   About this Place
@@ -302,64 +335,14 @@ export function HdpScreen() {
                 <HdpAmenityPills items={amenities} />
               </View>
 
-              <View style={styles.section}>
-                <View style={styles.sectionHeaderRow}>
-                  <Typography variant="text" size="xl" weight="bold">
-                    What Residents Say
-                  </Typography>
-                  <View style={styles.googleBadge}>
-                    <Typography variant="text" size="xs" weight="medium" color={palette.gray[800]}>
-                      Google
-                    </Typography>
-                  </View>
-                </View>
-                <View style={styles.reviewSummary}>
-                  <View>
-                    <Typography variant="display" size="sm" weight="bold">
-                      {Number(googleRating).toFixed(1)}★
-                    </Typography>
-                    <Typography variant="text" size="sm" weight="medium">
-                      Exceptional
-                    </Typography>
-                    <Typography variant="text" size="xs" color={palette.textSecondary}>
-                      Based on {reviewCount} reviews
-                    </Typography>
-                  </View>
-                </View>
-              </View>
+              <HdpReviewsSection
+                rating={Number(googleRating) || 4.8}
+                reviewCount={reviewCount}
+                carouselWidth={width - 48}
+                reviews={HDP_DUMMY_REVIEWS}
+              />
 
-              <View style={styles.section}>
-                <Typography variant="text" size="xl" weight="bold" style={styles.sectionTitle}>
-                  More Places you&apos;ll Like
-                </Typography>
-                <HwCarousel
-                  data={similarListings}
-                  width={width - 48}
-                  height={520}
-                  showPagination
-                  renderItem={({ item }) => (
-                    <PropertyCard
-                      property={item}
-                      style={{ width: width - 48, alignSelf: 'center' }}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/hdp',
-                          params: {
-                            id: item.id,
-                            name: item.name,
-                            image:
-                              typeof item.images[0] === 'object' &&
-                              item.images[0] &&
-                              'uri' in item.images[0]
-                                ? item.images[0].uri
-                                : undefined,
-                          },
-                        })
-                      }
-                    />
-                  )}
-                />
-              </View>
+              <HdpSimilarPropertiesSection listings={similarListings} />
 
               <View style={styles.section}>
                 <Typography variant="text" size="xl" weight="bold" style={styles.sectionTitle}>
@@ -367,17 +350,24 @@ export function HdpScreen() {
                 </Typography>
                 <HdpFaqList items={HDP_SAMPLE_FAQ} />
               </View>
+              </View>
             </View>
           </Animated.ScrollView>
 
+          {showStickyTabs ? (
+            <View style={[styles.stickyTabBar, { top: stickyTop }]}>
+              <HdpSectionNav activeId={activeSection} onChange={setActiveSection} />
+            </View>
+          ) : null}
+
           <HdpFooterBar
             visible={showFooter}
-            onRequestCallback={() => {
+            onScheduleVisit={() => {
               setVisitSheetTab('schedule');
               setVisitSheetOpen(true);
             }}
-            onTakeTour={() => {
-              setVisitSheetTab('schedule');
+            onBookNow={() => {
+              setVisitSheetTab('book');
               setVisitSheetOpen(true);
             }}
           />
@@ -413,7 +403,7 @@ export function HdpScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: palette.white,
+    backgroundColor: palette.gray[50],
   },
   loader: {
     flex: 1,
@@ -438,28 +428,34 @@ const styles = StyleSheet.create({
     gap: 24,
     overflow: 'hidden',
   },
+  tabBarBleed: {
+    marginHorizontal: -24,
+    paddingHorizontal: 24,
+  },
+  stickyTabBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 15,
+    paddingHorizontal: 24,
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  sheetBody: {
+    marginHorizontal: -24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 8,
+    backgroundColor: palette.gray[50],
+    gap: 24,
+  },
   section: {
     gap: 12,
   },
   sectionTitle: {
     marginBottom: 4,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  googleBadge: {
-    backgroundColor: '#FECDCA',
-    borderRadius: 16,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  reviewSummary: {
-    backgroundColor: palette.gray[50],
-    borderRadius: Radius.md,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: palette.gray[200],
   },
 });

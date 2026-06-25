@@ -1,16 +1,20 @@
 import { postInitiatePayment, postVerifyPayment } from '@/api/checkout';
 import config from '@/config';
 import { PaymentErrorView } from '@/components/payment/payment-error-view';
+import { BookingPaymentFailedView } from '@/components/booking/booking-payment-failed-view';
 import { PaymentSuccessView } from '@/components/payment/payment-success-view';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
+import { useBookingDraftStore } from '@/stores/booking-draft-store';
+import { buildBookingPaymentPayload, buildBookingVerifyPayload } from '@/utils/booking-checkout';
+import { buildInvoiceId } from '@/utils/booking-payment';
 import {
   CFEnvironment,
   CFPaymentGatewayService,
   CFSession,
   RazorpayCheckout,
 } from '@/utils/payment-gateway';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
@@ -49,11 +53,32 @@ function parseRazorpayError(error: unknown): string {
   return 'Payment failed. Please try again later.';
 }
 
+function parsePayloadParam(payload: string | string[] | undefined) {
+  if (!payload) return {};
+
+  try {
+    return typeof payload === 'string'
+      ? (JSON.parse(payload) as Record<string, unknown>)
+      : Array.isArray(payload)
+        ? {}
+        : (payload as Record<string, unknown>);
+  } catch {
+    return {};
+  }
+}
+
 export function CompletePaymentScreen() {
+  const router = useRouter();
   const params = useLocalSearchParams();
+  const setPaymentResult = useBookingDraftStore((state) => state.setPaymentResult);
+  const pendingCheckout = useBookingDraftStore((state) => state.pendingCheckout);
+  const setPendingCheckout = useBookingDraftStore((state) => state.setPendingCheckout);
   const [status, setStatus] = useState<PaymentStatus>('loading');
   const [errorMessage, setErrorMessage] = useState('');
   const initDataRef = useRef<InitPaymentData | null>(null);
+  const verifyPaymentRef = useRef<
+    ((initData: InitPaymentData, razorpayData: { razorpay_payment_id: string; razorpay_signature: string }) => Promise<void>) | null
+  >(null);
 
   const amount = params.amount ? parseFloat(String(params.amount)) : 0;
   const paymentType = (params.type as string) || 'invoice';
@@ -62,28 +87,56 @@ export function CompletePaymentScreen() {
   const email = (params.email as string) || '';
   const mobile = (params.mobile as string) || '';
   const description = (params.description as string) || 'Payment';
+  const moveInDate =
+    paymentType === 'booking'
+      ? pendingCheckout?.draft.moveInDate ?? ''
+      : (params.moveInDate as string) || '';
 
-  let paymentPayload: Record<string, unknown> = {};
-  if (params.payload) {
-    try {
-      paymentPayload =
-        typeof params.payload === 'string'
-          ? (JSON.parse(params.payload) as Record<string, unknown>)
-          : (Array.isArray(params.payload) ? {} : (params.payload as Record<string, unknown>));
-    } catch {
-      paymentPayload = {};
-    }
-  }
+  const paymentPayload =
+    paymentType === 'booking' && pendingCheckout
+      ? buildBookingPaymentPayload(pendingCheckout)
+      : parsePayloadParam(params.payload);
 
-  const handlePaymentSuccess = useCallback(() => {
-    setStatus('success');
-  }, []);
+  const bookingSummary = pendingCheckout?.summary ?? null;
+
+  const completeBookingPayment = useCallback(
+    (initData: InitPaymentData) => {
+      setPaymentResult({
+        invoiceId: initData.id ? String(initData.id) : buildInvoiceId(),
+        paidAmount: initData.amount ?? amount,
+        moveInDate,
+        paymentDate: new Date().toISOString(),
+      });
+      setPendingCheckout(null);
+      router.replace('/booking-success');
+    },
+    [amount, moveInDate, router, setPaymentResult, setPendingCheckout],
+  );
+
+  const handlePaymentSuccess = useCallback(
+    (initData?: InitPaymentData) => {
+      if (paymentType === 'booking' && initData) {
+        completeBookingPayment(initData);
+        return;
+      }
+      setStatus('success');
+    },
+    [completeBookingPayment, paymentType],
+  );
 
   useEffect(() => {
     if (!CFPaymentGatewayService) return;
 
     CFPaymentGatewayService.setCallback({
-      onVerify() {
+      onVerify(orderID) {
+        const initData = initDataRef.current;
+        if (paymentType === 'booking' && initData && verifyPaymentRef.current) {
+          void verifyPaymentRef.current(initData, {
+            razorpay_payment_id: orderID,
+            razorpay_signature: orderID,
+          });
+          return;
+        }
         handlePaymentSuccess();
       },
       onError(error) {
@@ -96,13 +149,17 @@ export function CompletePaymentScreen() {
       CFPaymentGatewayService?.removeCallback();
       CFPaymentGatewayService?.removeEventSubscriber();
     };
-  }, [handlePaymentSuccess]);
+  }, [handlePaymentSuccess, paymentType]);
 
   function buildVerifyPayload(
     initData: InitPaymentData,
     razorpayData: { razorpay_payment_id: string; razorpay_signature: string },
   ) {
-    const request: Record<string, unknown> = {
+    if (paymentType === 'booking') {
+      return buildBookingVerifyPayload(initData, razorpayData, initData.amount ?? amount);
+    }
+
+    return {
       ...paymentPayload,
       transactionId: initData.paymentObj.transactionId,
       amount,
@@ -110,32 +167,34 @@ export function CompletePaymentScreen() {
       razorpayPaymentId: razorpayData.razorpay_payment_id,
       razorpaySignature: razorpayData.razorpay_signature,
     };
-
-    if (paymentType === 'invoice') {
-      return request;
-    }
-
-    return request;
   }
 
-  async function verifyPayment(
-    initData: InitPaymentData,
-    razorpayData: { razorpay_payment_id: string; razorpay_signature: string },
-  ) {
-    try {
-      const verifyPayload = buildVerifyPayload(initData, razorpayData);
-      const { success, message } = await postVerifyPayment(verifyApi, verifyPayload);
-      if (success) {
-        handlePaymentSuccess();
-      } else {
+  const verifyPayment = useCallback(
+    async (
+      initData: InitPaymentData,
+      razorpayData: { razorpay_payment_id: string; razorpay_signature: string },
+    ) => {
+      try {
+        const verifyPayload = buildVerifyPayload(initData, razorpayData);
+        const { success, message } = await postVerifyPayment(verifyApi, verifyPayload);
+        if (success) {
+          handlePaymentSuccess(initData);
+        } else {
+          setStatus('failed');
+          setErrorMessage(message || 'Payment verification failed');
+        }
+      } catch (error) {
         setStatus('failed');
-        setErrorMessage(message || 'Payment verification failed');
+        setErrorMessage(error instanceof Error ? error.message : 'Payment verification failed');
       }
-    } catch (error) {
-      setStatus('failed');
-      setErrorMessage(error instanceof Error ? error.message : 'Payment verification failed');
-    }
-  }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [amount, handlePaymentSuccess, paymentPayload, paymentType, verifyApi],
+  );
+
+  useEffect(() => {
+    verifyPaymentRef.current = verifyPayment;
+  }, [verifyPayment]);
 
   async function startCashfreeCheckout(initData: InitPaymentData) {
     if (!CFPaymentGatewayService || !CFSession || !CFEnvironment) {
@@ -197,6 +256,12 @@ export function CompletePaymentScreen() {
   }
 
   const initPayment = useCallback(async () => {
+    if (paymentType === 'booking' && !pendingCheckout) {
+      setStatus('failed');
+      setErrorMessage('Booking payment session expired. Please try again from the booking screen.');
+      return;
+    }
+
     setStatus('loading');
     setErrorMessage('');
 
@@ -211,10 +276,19 @@ export function CompletePaymentScreen() {
       return;
     }
 
-    const paymentObj = (payments ?? data?.paymentObj ?? {}) as InitPaymentData['paymentObj'];
+    const paymentRecord = (payments ?? data?.paymentObj ?? {}) as InitPaymentData['paymentObj'] & {
+      amount?: number;
+    };
+    const resolvedAmount =
+      typeof paymentRecord.amount === 'number'
+        ? paymentRecord.amount
+        : typeof data?.amount === 'number'
+          ? data.amount
+          : amount;
+
     const initData: InitPaymentData = {
-      paymentObj,
-      amount,
+      paymentObj: paymentRecord,
+      amount: resolvedAmount,
       id: data?.id as string | undefined,
       data: data as Record<string, unknown> | undefined,
     };
@@ -224,7 +298,7 @@ export function CompletePaymentScreen() {
       openGateway(initData);
     }, 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pendingCheckout, paymentType]);
 
   useEffect(() => {
     void initPayment();
@@ -242,6 +316,31 @@ export function CompletePaymentScreen() {
   }
 
   if (status === 'failed') {
+    if (paymentType === 'booking') {
+      const transactionId = initDataRef.current?.paymentObj.transactionId;
+      const resolvedSummary = {
+        ...(bookingSummary ?? {
+          invoiceId: buildInvoiceId(),
+          date: new Date().toISOString(),
+          lines: [{ label: 'Booking payment', amount }],
+          discounts: [],
+          total: amount,
+        }),
+        invoiceId:
+          transactionId != null
+            ? String(transactionId)
+            : bookingSummary?.invoiceId ?? buildInvoiceId(),
+      };
+
+      return (
+        <BookingPaymentFailedView
+          summary={resolvedSummary}
+          errorMessage={errorMessage}
+          onRetry={initPayment}
+        />
+      );
+    }
+
     return <PaymentErrorView message={errorMessage} onRetry={initPayment} />;
   }
 

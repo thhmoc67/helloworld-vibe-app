@@ -4,22 +4,34 @@ import type { SharedValue } from 'react-native-reanimated';
 
 import palette from '@/constants/palette';
 
+const DOT_SIZE = 6;
+const ACTIVE_DOT_WIDTH = 24;
+const DOT_GAP = 4;
+
 type CarouselPaginationProps<T extends object> = {
   progress: SharedValue<number>;
   data: T[];
   onPress: (index: number) => void;
+  dotColor?: string;
+  activeDotColor?: string;
 };
 
-export function CarouselPagination<T extends object>({ progress, data, onPress }: CarouselPaginationProps<T>) {
+export function CarouselPagination<T extends object>({
+  progress,
+  data,
+  onPress,
+  dotColor = palette.gray[600],
+  activeDotColor = palette.gray[300],
+}: CarouselPaginationProps<T>) {
   return (
     <Pagination.Custom
       progress={progress}
       data={data}
       horizontal
-      size={6}
+      size={DOT_SIZE}
       containerStyle={styles.container}
-      dotStyle={styles.dot}
-      activeDotStyle={styles.dotActive}
+      dotStyle={[styles.dot, { backgroundColor: dotColor }]}
+      activeDotStyle={[styles.dotActive, { backgroundColor: activeDotColor }]}
       onPress={onPress}
     />
   );
@@ -27,20 +39,21 @@ export function CarouselPagination<T extends object>({ progress, data, onPress }
 
 const styles = StyleSheet.create({
   container: {
-    gap: 6,
-    marginTop: 8,
-    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: DOT_GAP,
+    marginTop: 12,
+    marginBottom: 4,
     alignItems: 'center',
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: palette.gray[300],
+    width: DOT_SIZE,
+    height: DOT_SIZE,
+    borderRadius: DOT_SIZE / 2,
   },
   dotActive: {
-    width: 18,
-    borderRadius: 3,
-    backgroundColor: palette.lime[500],
+    width: ACTIVE_DOT_WIDTH,
+    height: DOT_SIZE,
+    borderRadius: DOT_SIZE / 2,
   },
 });

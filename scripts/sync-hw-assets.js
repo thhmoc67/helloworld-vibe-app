@@ -167,6 +167,24 @@ function main() {
     copyFile(paymentLottieSrc, path.join(paymentsTarget, 'payment-pending.json'));
     console.log(`[sync-hw-assets] Synced payment assets to ${paymentsTarget}`);
   }
+
+  const visitorsTarget = path.join(__dirname, '..', 'assets', 'bundled', 'visitors');
+  const visitorsIllustrationSrc = path.join(
+    profileSource,
+    'Visitors- App',
+    'No visitors Pagloo.png',
+  );
+  if (fs.existsSync(visitorsIllustrationSrc)) {
+    copyFile(visitorsIllustrationSrc, path.join(visitorsTarget, 'no-visitors-pagloo.png'));
+    console.log(`[sync-hw-assets] Synced visitor assets to ${visitorsTarget}`);
+  }
+
+  const emptyStateTarget = path.join(__dirname, '..', 'assets', 'bundled', 'empty-state');
+  const emptyStateSrc = path.join(profileSource, 'Error States_ Pagloo', 'Empty State 1.png');
+  if (fs.existsSync(emptyStateSrc)) {
+    copyFile(emptyStateSrc, path.join(emptyStateTarget, 'empty-state.png'));
+    console.log(`[sync-hw-assets] Synced empty state assets to ${emptyStateTarget}`);
+  }
 }
 
 main();

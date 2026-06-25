@@ -1,3 +1,5 @@
+import { AMENITY_NAMES } from '@/constants/amenities';
+
 export const SRP_PRICE_MIN = 1000;
 export const SRP_PRICE_MAX = 99999;
 
@@ -26,33 +28,4 @@ export const SRP_GENDER_OPTIONS: readonly SrpGenderOption[] = [
   { label: 'Coliving', value: '' },
 ];
 
-export const SRP_AMENITIES: readonly string[] = [
-  'AC',
-  'Attached bathroom',
-  'Balcony',
-  'Carrom Board',
-  'Cloths dry stand',
-  'Coffee Table',
-  'Cots',
-  'Cupboard',
-  'DTH',
-  'Dining table & Chair',
-  'Foosball',
-  'Fridge',
-  'Geyser',
-  'House keeping',
-  'Kitchen',
-  'Lift',
-  'Mattress 5inch',
-  'Mattress 8inch',
-  'Pillow',
-  'RO',
-  'Side table',
-  'Sofa',
-  'Soft furnishing',
-  'Study table',
-  'TV',
-  'Table tennis',
-  'Washing machine',
-  'Water Cooler',
-];
+export const SRP_AMENITIES: readonly string[] = AMENITY_NAMES;

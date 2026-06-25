@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View, useWindowDimensions } f
 
 import { DashboardSectionHeader } from '@/components/tenant/dashboard/dashboard-section-header';
 import { HwCarousel } from '@/components/ui/carousel';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
@@ -79,11 +80,12 @@ export function DashboardEventsSection({ events, isLoading }: DashboardEventsSec
           renderItem={({ item }) => <EventCard event={item} width={cardWidth} />}
         />
       ) : (
-        <View style={styles.empty}>
-          <Typography variant="text" size="sm" color={palette.gray[500]}>
-            No upcoming events right now
-          </Typography>
-        </View>
+        <EmptyState
+          compact
+          title="No upcoming events right now"
+          actionLabel="View Events"
+          onAction={() => router.push('/community-events')}
+        />
       )}
     </View>
   );
@@ -113,9 +115,5 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginVertical: 24,
-  },
-  empty: {
-    paddingVertical: 24,
-    alignItems: 'center',
   },
 });

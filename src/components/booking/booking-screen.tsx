@@ -14,19 +14,29 @@ import { BookingChargesSheet } from '@/components/booking/booking-charges-sheet'
 import { BookingPaymentOption } from '@/components/booking/booking-payment-option';
 import { BookingPropertySummary } from '@/components/booking/booking-property-summary';
 import { DiscountCodeInput } from '@/components/booking/discount-code-input';
+import { HdpVisitSheet } from '@/components/hdp/hdp-visit-sheet';
 import { Button } from '@/components/ui/button';
 import { Typography } from '@/components/ui/typography';
 import { BOOKING_TERMS, DEFAULT_BOOKING_CHARGES } from '@/constants/booking';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+import { usePropertyCategories } from '@/queries/use-property-categories';
+import { usePropertyDetail } from '@/queries/use-property-detail';
+import { useAuthStore } from '@/stores/auth-store';
 import { useBookingDraftStore } from '@/stores/booking-draft-store';
+import { useBookingPayment } from '@/hooks/use-booking-payment';
 import type { AppliedDiscount, BookingChargeId } from '@/types/booking-payment';
 import {
-  buildInvoiceId,
   formatBookingAmount,
   formatBookingApiDate,
   sumSelectedCharges,
 } from '@/utils/booking-payment';
+import {
+  buildChargesFromPricing,
+  computePayableSubtotal,
+  mapPaymentDetailsRow,
+  type BookingPricingDetails,
+} from '@/utils/booking-pricing';
 
 const DEFAULT_SELECTED: Record<BookingChargeId, boolean> = {
   token: true,
@@ -36,12 +46,26 @@ const DEFAULT_SELECTED: Record<BookingChargeId, boolean> = {
   utility: false,
 };
 
+function formatRentLabel(amount?: number) {
+  if (!amount || amount <= 0) return '₹—';
+  return `₹${amount.toLocaleString('en-IN')}/mo`;
+}
+
+function formatDepositLabel(months?: number) {
+  if (!months || months <= 0) return '1 months rent';
+  return `${months} month${months > 1 ? 's' : ''} rent`;
+}
+
 export function BookingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const draft = useBookingDraftStore((state) => state.draft);
-  const setPaymentResult = useBookingDraftStore((state) => state.setPaymentResult);
+  const { startBookingPayment } = useBookingPayment();
 
+  const [pricingDetails, setPricingDetails] = useState<BookingPricingDetails | null>(null);
+  const [discountPricingDetails, setDiscountPricingDetails] = useState<BookingPricingDetails | null>(
+    null,
+  );
   const [charges, setCharges] = useState(DEFAULT_BOOKING_CHARGES);
   const [selected, setSelected] = useState<Record<BookingChargeId, boolean>>(DEFAULT_SELECTED);
   const [referralInput, setReferralInput] = useState('');
@@ -53,7 +77,49 @@ export function BookingScreen() {
   const [appliedReferral, setAppliedReferral] = useState<AppliedDiscount | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedDiscount | null>(null);
   const [chargesSheetOpen, setChargesSheetOpen] = useState(false);
-  const [paying, setPaying] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
+  const storedMobile = useAuthStore((state) => state.mobile);
+
+  const activePricing = appliedCoupon && discountPricingDetails ? discountPricingDetails : pricingDetails;
+
+  const propertyId = draft?.propertyId ?? '';
+  const { data: propertyData } = usePropertyDetail(propertyId);
+  const { data: categories = [] } = usePropertyCategories(propertyId);
+
+  const property = propertyData?.success
+    ? (propertyData.data as Record<string, unknown>)
+    : null;
+
+  const startingRent = useMemo(() => {
+    const value =
+      property?.min_rent ??
+      property?.starting_rent ??
+      property?.price ??
+      property?.rent ??
+      draft?.roomPrice;
+    return typeof value === 'number' ? value : undefined;
+  }, [draft?.roomPrice, property]);
+
+  const roomTypes = useMemo(() => {
+    const fromProperty = [
+      ...(Array.isArray(property?.room_types) ? property.room_types : []),
+      ...(Array.isArray(property?.sharing_types) ? property.sharing_types : []),
+    ].filter((item): item is string => typeof item === 'string');
+
+    return fromProperty.length > 0 ? fromProperty : undefined;
+  }, [property]);
+
+  const minStayMonths =
+    (typeof property?.lock_in_period === 'number' ? property.lock_in_period : undefined) ??
+    (typeof property?.minimum_stay === 'number' ? property.minimum_stay : undefined) ??
+    (typeof property?.min_stay_months === 'number' ? property.min_stay_months : undefined) ??
+    draft?.securityDepositMonths ??
+    3;
+
+  const depositMonths =
+    (typeof property?.security_deposit_months === 'number'
+      ? property.security_deposit_months
+      : undefined) ?? minStayMonths;
 
   useEffect(() => {
     if (!draft) {
@@ -66,7 +132,7 @@ export function BookingScreen() {
 
     const draftSnapshot = draft;
 
-    async function loadPaymentDetails() {
+    async function loadPaymentDetails(couponCode?: string) {
       const response = await getPaymentDetails({
         categoryId: draftSnapshot.categoryId ?? draftSnapshot.roomId,
         sharingType: draftSnapshot.sharingType,
@@ -74,39 +140,48 @@ export function BookingScreen() {
         sdMonths: draftSnapshot.securityDepositMonths ?? 1,
         propertyId: draftSnapshot.propertyId,
         propertyName: draftSnapshot.propertyName,
+        couponCode,
+        sdKey: couponCode ? pricingDetails?.sdKey : undefined,
       });
 
       if (!response.success || !Array.isArray(response.data) || response.data.length === 0) {
-        return;
+        return null;
       }
 
-      const pricing = response.data[0] as Record<string, number>;
-      setCharges((current) =>
-        current.map((charge) => {
-          if (charge.id === 'token' && pricing.token) return { ...charge, amount: pricing.token };
-          if (charge.id === 'moveIn' && pricing.moveInCharges) {
-            return { ...charge, amount: pricing.moveInCharges };
-          }
-          if (charge.id === 'security' && pricing.securityDeposit) {
-            return { ...charge, amount: pricing.securityDeposit };
-          }
-          if (charge.id === 'advanceRent' && pricing.advanceRent) {
-            return { ...charge, amount: pricing.advanceRent };
-          }
-          return charge;
-        }),
-      );
+      return mapPaymentDetailsRow(response.data[0] as Record<string, unknown>);
     }
 
-    loadPaymentDetails();
+    async function fetchPricing() {
+      const pricing = await loadPaymentDetails();
+      if (!pricing) return;
+
+      setPricingDetails(pricing);
+      setCharges(buildChargesFromPricing(pricing));
+    }
+
+    void fetchPricing();
   }, [draft]);
+
+  useEffect(() => {
+    if (!appliedCoupon) {
+      setDiscountPricingDetails(null);
+      if (pricingDetails) {
+        setCharges(buildChargesFromPricing(pricingDetails));
+      }
+    }
+  }, [appliedCoupon, pricingDetails]);
 
   const discounts = useMemo(
     () => [appliedCoupon, appliedReferral].filter((item): item is AppliedDiscount => Boolean(item)),
     [appliedCoupon, appliedReferral],
   );
 
-  const subtotal = useMemo(() => sumSelectedCharges(charges, selected), [charges, selected]);
+  const subtotal = useMemo(() => {
+    if (activePricing) {
+      return computePayableSubtotal(activePricing, selected);
+    }
+    return sumSelectedCharges(charges, selected);
+  }, [activePricing, charges, selected]);
   const savings = discounts.reduce((total, discount) => total + discount.amount, 0);
   const total = Math.max(subtotal - savings, 0);
   const selectedIds = useMemo(
@@ -170,9 +245,16 @@ export function BookingScreen() {
         propertyId: bookingDraft.propertyId,
         propertyName: bookingDraft.propertyName,
         couponCode: couponInput.trim(),
+        sdKey: pricingDetails?.sdKey,
       });
 
-      if (response.success && response.discountMessage) {
+      if (response.success && response.discountMessage && Array.isArray(response.data)) {
+        const discountedPricing = mapPaymentDetailsRow(response.data[0] as Record<string, unknown>);
+        if (discountedPricing) {
+          setDiscountPricingDetails(discountedPricing);
+          setCharges(buildChargesFromPricing(discountedPricing));
+        }
+
         setAppliedCoupon({
           type: 'coupon',
           code: couponInput.trim().toUpperCase(),
@@ -194,24 +276,29 @@ export function BookingScreen() {
     setChargesSheetOpen(true);
   }
 
-  async function handleConfirmPayment() {
-    setPaying(true);
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 900));
-
-      setPaymentResult({
-        invoiceId: buildInvoiceId(),
-        paidAmount: total,
-        moveInDate: bookingDraft.moveInDate,
-        paymentDate: new Date().toISOString(),
-      });
-
-      setChargesSheetOpen(false);
-      router.replace('/booking-success');
-    } finally {
-      setPaying(false);
+  function handleConfirmPayment() {
+    if (!activePricing) {
+      return;
     }
+
+    setChargesSheetOpen(false);
+
+    const mobile =
+      storedMobile?.replace(/\D/g, '').slice(-10) ||
+      bookingDraft.occupant.phone.replace(/\D/g, '').slice(-10);
+
+    startBookingPayment({
+      draft: bookingDraft,
+      selected,
+      total,
+      couponCode: appliedCoupon?.code,
+      referralCode: appliedReferral?.code,
+      sdKey: activePricing.sdKey,
+      mobile,
+      charges,
+      discounts,
+      pricing: activePricing,
+    });
   }
 
   return (
@@ -253,7 +340,7 @@ export function BookingScreen() {
           rent={bookingDraft.roomPrice}
           moveInDate={bookingDraft.moveInDate}
           imageUri={bookingDraft.imageUri}
-          onEdit={() => router.back()}
+          onEdit={() => setEditSheetOpen(true)}
         />
 
         <View style={styles.section}>
@@ -358,7 +445,7 @@ export function BookingScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Button label="Pay Now" onPress={handlePayNow} />
+        <Button label="Pay Now" onPress={handlePayNow} disabled={!activePricing} />
       </View>
 
       <BookingChargesSheet
@@ -371,7 +458,25 @@ export function BookingScreen() {
         total={total}
         savings={savings}
         onPayNow={handleConfirmPayment}
-        paying={paying}
+      />
+
+      <HdpVisitSheet
+        visible={editSheetOpen}
+        onClose={() => setEditSheetOpen(false)}
+        propertyId={bookingDraft.propertyId}
+        propertyName={bookingDraft.propertyName}
+        property={property}
+        propertyLocation={bookingDraft.location}
+        imageUri={bookingDraft.imageUri}
+        rentLabel={formatRentLabel(startingRent)}
+        depositLabel={formatDepositLabel(depositMonths)}
+        startingRent={startingRent}
+        minStayMonths={minStayMonths}
+        roomTypes={roomTypes}
+        categories={categories}
+        bookOnly
+        editDraft={bookingDraft}
+        onBookingUpdated={() => setEditSheetOpen(false)}
       />
     </SafeAreaView>
   );

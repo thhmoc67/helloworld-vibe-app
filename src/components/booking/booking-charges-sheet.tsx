@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Typography } from '@/components/ui/typography';
 import type { AppliedDiscount, BookingChargeOption } from '@/types/booking-payment';
 import { formatBookingAmount } from '@/utils/booking-payment';
-import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 
 type BookingChargesSheetProps = {
@@ -22,19 +21,64 @@ type BookingChargesSheetProps = {
   paying?: boolean;
 };
 
-function DiscountBadge({ discount }: { discount: AppliedDiscount }) {
+const SUMMARY_COLORS = {
+  primary: '#0A0A0A',
+  muted: '#888888',
+  sectionLabel: '#AAAAAA',
+  requiredBadgeBg: '#EAF3DE',
+  requiredBadgeText: '#3B6D11',
+  discountBg: '#EAF3DE',
+  discountBadgeBg: '#C0DD97',
+  discountBadgeText: '#27500A',
+  discountText: '#3B6D11',
+  rowBorder: '#F0F0F0',
+  totalBorder: '#E5E5E5',
+} as const;
+
+type ChargeSummaryRowProps = {
+  charge: BookingChargeOption;
+};
+
+function ChargeSummaryRow({ charge }: ChargeSummaryRowProps) {
+  return (
+    <View style={styles.chargeRow}>
+      <View style={styles.chargeCopy}>
+        <Typography variant="text" size="sm" style={styles.chargeLabel}>
+          {charge.label}
+        </Typography>
+        <Typography variant="text" size="xs" style={styles.chargeDescription}>
+          {charge.description}
+        </Typography>
+        {charge.badge ? (
+          <View style={styles.requiredBadge}>
+            <Typography variant="text" size="xs" style={styles.requiredBadgeText}>
+              {charge.badge}
+            </Typography>
+          </View>
+        ) : null}
+      </View>
+      <Typography variant="text" size="sm" weight="medium" style={styles.chargeAmount}>
+        {formatBookingAmount(charge.amount)}
+      </Typography>
+    </View>
+  );
+}
+
+function DiscountSummaryRow({ discount }: { discount: AppliedDiscount }) {
   return (
     <View style={styles.discountRow}>
-      <View style={styles.discountBadge}>
-        <Typography variant="text" size="xs" weight="bold" color={palette.lime[800]}>
-          {discount.type === 'coupon' ? 'COUPON' : 'REFERRAL'}
+      <View style={styles.discountLeft}>
+        <View style={styles.discountBadge}>
+          <Typography variant="text" size="xs" style={styles.discountBadgeText}>
+            {discount.type === 'coupon' ? 'COUPON' : 'REFERRAL'}
+          </Typography>
+        </View>
+        <Typography variant="text" size="xs" style={styles.discountCode}>
+          {discount.code}
         </Typography>
       </View>
-      <Typography variant="text" size="sm" weight="medium" style={styles.discountCode}>
-        {discount.code}
-      </Typography>
-      <Typography variant="text" size="sm" weight="bold" color={palette.helloLime}>
-        -{formatBookingAmount(discount.amount)}
+      <Typography variant="text" size="sm" weight="medium" style={styles.discountAmount}>
+        −{formatBookingAmount(discount.amount)}
       </Typography>
     </View>
   );
@@ -54,6 +98,7 @@ export function BookingChargesSheet({
 }: BookingChargesSheetProps) {
   const insets = useSafeAreaInsets();
   const selectedCharges = charges.filter((charge) => selectedIds.has(charge.id));
+  const unselectedCharges = charges.filter((charge) => !selectedIds.has(charge.id));
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
@@ -61,64 +106,53 @@ export function BookingChargesSheet({
         bounces={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-        <Typography variant="text" size="xs" weight="medium" color={palette.gray[500]} style={styles.eyebrow}>
-          CHARGES SELECTED
-        </Typography>
-
         <View style={styles.chargeList}>
           {selectedCharges.map((charge) => (
-            <View key={charge.id} style={styles.chargeRow}>
-              <View style={styles.chargeCopy}>
-                <Typography variant="text" size="sm" weight="bold">
-                  {charge.label}
-                </Typography>
-                <Typography variant="text" size="xs" color={palette.gray[600]}>
-                  {charge.description}
-                </Typography>
-              </View>
-              <Typography variant="text" size="sm" weight="bold">
-                {formatBookingAmount(charge.amount)}
-              </Typography>
-            </View>
+            <ChargeSummaryRow key={charge.id} charge={charge} />
           ))}
-        </View>
 
-        <View style={styles.subtotalRow}>
-          <Typography variant="text" size="sm" weight="bold">
-            Subtotal
-          </Typography>
-          <Typography variant="text" size="sm" weight="bold">
-            {formatBookingAmount(subtotal)}
-          </Typography>
+          {unselectedCharges.length > 0 ? (
+            <>
+              <Typography
+                variant="text"
+                size="xs"
+                style={styles.notSelectedLabel}
+                accessibilityRole="header">
+                NOT SELECTED
+              </Typography>
+
+              <View style={styles.unselectedGroup}>
+                {unselectedCharges.map((charge) => (
+                  <ChargeSummaryRow key={charge.id} charge={charge} />
+                ))}
+              </View>
+            </>
+          ) : null}
         </View>
 
         {discounts.length > 0 ? (
           <View style={styles.discountBox}>
-            {discounts.map((discount) => (
-              <DiscountBadge key={`${discount.type}-${discount.code}`} discount={discount} />
+            {discounts.map((discount, index) => (
+              <View key={`${discount.type}-${discount.code}`}>
+                {index > 0 ? <View style={styles.discountDivider} /> : null}
+                <DiscountSummaryRow discount={discount} />
+              </View>
             ))}
+            {savings === 0 ? (
+              <Typography variant="text" size="xs" style={styles.discountHint}>
+                Discounts apply when total exceeds {formatBookingAmount(subtotal + 1)}
+              </Typography>
+            ) : null}
           </View>
         ) : null}
 
         <View style={styles.totalBlock}>
-          <Typography variant="text" size="sm" color={palette.gray[600]}>
+          <Typography variant="text" size="sm" style={styles.totalLabel}>
             Total payable now
           </Typography>
-          <View style={styles.totalRow}>
-            {savings > 0 ? (
-              <Typography variant="text" size="sm" color={palette.gray[400]} style={styles.strike}>
-                {formatBookingAmount(subtotal)}
-              </Typography>
-            ) : null}
-            <Typography variant="display" size="sm" weight="bold">
-              {formatBookingAmount(total)}
-            </Typography>
-          </View>
-          {savings > 0 ? (
-            <Typography variant="text" size="sm" weight="medium" color={palette.helloLime}>
-              You&apos;re saving {formatBookingAmount(savings)} on this booking
-            </Typography>
-          ) : null}
+          <Typography variant="display" size="sm" weight="bold" style={styles.totalAmount}>
+            {formatBookingAmount(total)}
+          </Typography>
         </View>
 
         <Button label="Pay Now" onPress={onPayNow} loading={paying} style={styles.cta} />
@@ -130,65 +164,131 @@ export function BookingChargesSheet({
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 24,
     gap: 16,
   },
-  eyebrow: {
-    letterSpacing: 0.8,
-  },
   chargeList: {
-    gap: 14,
+    gap: 16,
   },
   chargeRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
+    paddingBottom: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SUMMARY_COLORS.rowBorder,
   },
   chargeCopy: {
     flex: 1,
     gap: 4,
   },
-  subtotalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: palette.gray[200],
-    paddingTop: 14,
+  chargeLabel: {
+    color: SUMMARY_COLORS.primary,
+    lineHeight: 20,
+  },
+  chargeDescription: {
+    color: SUMMARY_COLORS.muted,
+    lineHeight: 17,
+  },
+  chargeAmount: {
+    color: SUMMARY_COLORS.primary,
+    lineHeight: 20,
+  },
+  requiredBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: SUMMARY_COLORS.requiredBadgeBg,
+    borderRadius: Radius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 2,
+  },
+  requiredBadgeText: {
+    color: SUMMARY_COLORS.requiredBadgeText,
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 0.12,
+  },
+  notSelectedLabel: {
+    color: SUMMARY_COLORS.sectionLabel,
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 0.37,
+    textTransform: 'uppercase',
+  },
+  unselectedGroup: {
+    gap: 16,
+    opacity: 0.4,
   },
   discountBox: {
-    backgroundColor: palette.lime[50],
+    backgroundColor: SUMMARY_COLORS.discountBg,
     borderRadius: Radius.md,
-    padding: 14,
-    gap: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    gap: 7,
   },
   discountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
+    gap: 12,
+    minHeight: 28,
+  },
+  discountLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   discountBadge: {
-    backgroundColor: palette.lime[200],
-    borderRadius: Radius.sm,
+    backgroundColor: SUMMARY_COLORS.discountBadgeBg,
+    borderRadius: Radius.full,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 2,
+  },
+  discountBadgeText: {
+    color: SUMMARY_COLORS.discountBadgeText,
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 0.12,
   },
   discountCode: {
     flex: 1,
+    color: SUMMARY_COLORS.discountText,
+    lineHeight: 18,
+  },
+  discountAmount: {
+    color: SUMMARY_COLORS.discountText,
+    lineHeight: 20,
+  },
+  discountDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: SUMMARY_COLORS.discountBadgeBg,
+    marginBottom: 7,
+  },
+  discountHint: {
+    color: SUMMARY_COLORS.discountText,
+    lineHeight: 17,
+    letterSpacing: 0.06,
   },
   totalBlock: {
-    gap: 8,
-  },
-  totalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: SUMMARY_COLORS.totalBorder,
+    paddingTop: 16,
+    paddingHorizontal: 2,
   },
-  strike: {
-    textDecorationLine: 'line-through',
+  totalLabel: {
+    color: SUMMARY_COLORS.muted,
+    lineHeight: 20,
+  },
+  totalAmount: {
+    color: SUMMARY_COLORS.primary,
+    lineHeight: 30,
   },
   cta: {
-    marginTop: 4,
+    marginTop: 0,
   },
 });

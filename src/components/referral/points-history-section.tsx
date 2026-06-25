@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 
+import { EmptyState } from '@/components/ui/empty-state';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
@@ -70,11 +71,7 @@ export function PointsHistorySection({ logs }: PointsHistorySectionProps) {
             </View>
           ))
         ) : (
-          <View style={styles.empty}>
-            <Typography variant="text" size="sm" color={palette.gray[500]}>
-              Referral history is not available yet
-            </Typography>
-          </View>
+          <EmptyState compact title="No referral history yet" />
         )}
       </View>
     </View>
@@ -120,9 +117,5 @@ const styles = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: palette.gray[200],
-  },
-  empty: {
-    paddingVertical: 24,
-    alignItems: 'center',
   },
 });

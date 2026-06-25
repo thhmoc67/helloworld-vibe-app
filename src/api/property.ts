@@ -61,6 +61,12 @@ export type PropertyDetailResponse = {
   data?: Record<string, unknown>;
   googleData?: { google_rating?: number };
   events?: unknown[];
+  similarProperties?: ApiProperty[];
+  similar_properties?: ApiProperty[];
+  similar?: ApiProperty[];
+  nearBy?: ApiProperty[];
+  nearby?: ApiProperty[];
+  near_by?: ApiProperty[];
   message?: string;
 };
 

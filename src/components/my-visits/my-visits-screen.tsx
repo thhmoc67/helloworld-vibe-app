@@ -13,6 +13,7 @@ import { RateVisitSheet } from '@/components/my-visits/rate-visit-sheet';
 import { RescheduleVisitSheet } from '@/components/my-visits/reschedule-visit-sheet';
 import { VisitCard } from '@/components/my-visits/visit-card';
 import { TenantScreenHeader } from '@/components/tenant/tenant-screen-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { SegmentedTabToggle } from '@/components/ui/segmented-tab-toggle';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
@@ -26,18 +27,23 @@ import {
   getVisitPropertyName,
 } from '@/utils/visit-format';
 
-function VisitsEmptyState({ tab }: { tab: VisitTab }) {
+function VisitsEmptyState({ tab, onExplore }: { tab: VisitTab; onExplore: () => void }) {
+  if (tab === 'upcoming') {
+    return (
+      <EmptyState
+        title="No upcoming visits"
+        subtitle="Scheduled property visits will appear here."
+        actionLabel="Explore Properties"
+        onAction={onExplore}
+      />
+    );
+  }
+
   return (
-    <View style={styles.emptyState}>
-      <Typography variant="text" size="lg" weight="medium" style={styles.emptyTitle}>
-        {tab === 'upcoming' ? 'No upcoming visits' : 'No past visits yet'}
-      </Typography>
-      <Typography variant="text" size="sm" color={palette.gray[500]} style={styles.emptySubtitle}>
-        {tab === 'upcoming'
-          ? 'Scheduled property visits will appear here.'
-          : 'Completed and cancelled visits will show up here after your tours.'}
-      </Typography>
-    </View>
+    <EmptyState
+      title="No past visits yet"
+      subtitle="Completed and cancelled visits will show up here after your tours."
+    />
   );
 }
 
@@ -105,7 +111,7 @@ export function MyVisitsScreen() {
             ))}
           </View>
         ) : (
-          <VisitsEmptyState tab={tab} />
+          <VisitsEmptyState tab={tab} onExplore={() => router.push('/')} />
         )}
       </ScrollView>
 
@@ -141,17 +147,5 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 32,
-  },
-  emptyState: {
-    alignItems: 'center',
-    gap: 8,
-    paddingTop: 24,
-    paddingHorizontal: 12,
-  },
-  emptyTitle: {
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    textAlign: 'center',
   },
 });

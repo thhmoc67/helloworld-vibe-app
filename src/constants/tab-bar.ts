@@ -49,7 +49,7 @@ export const TENANT_TAB_ORDER: TenantTabRouteName[] = [
 ];
 
 /** Native tab bar content height (icons + labels), excluding safe area. */
-export const TAB_BAR_HEIGHT = 76;
+export const TAB_BAR_HEIGHT = 88;
 
 /** Extra breathing room below the last item on tab screens. */
 export const TAB_SCREEN_EXTRA_PADDING = 24;

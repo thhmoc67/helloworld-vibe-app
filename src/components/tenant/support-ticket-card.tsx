@@ -27,6 +27,7 @@ export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
             subject: ticket.subject ?? 'Support ticket',
             ticketNumber: String(ticket.ticket_number ?? ticket.id),
             status: ticket.status ?? 'Open',
+            createdTime: createdAt ?? '',
           },
         })
       }

@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
@@ -8,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 
 import { HwIcon } from '@/components/hw-icon';
+import { LocalityCardImage } from '@/components/locality/locality-card-image';
 import { PropertyCard } from '@/components/property/property-card';
 import { TabBarIcon } from '@/components/tab-bar-icon';
 import { VibeSelectionList } from '@/components/vibe/vibe-selection-list';
@@ -28,7 +28,6 @@ import {
   Typography,
 } from '@/components/ui/typography';
 import { TypeScale, FONT_WEIGHTS } from '@/constants/fonts';
-import { ImageAssets } from '@/constants/assets';
 import { HOME_BACKGROUND_GRADIENT, NEIGHBORHOODS } from '@/constants/home';
 import { SAMPLE_PROPERTIES, SAMPLE_PROPERTY } from '@/constants/sample-property';
 import palette, { COLOR_SCALES, COLOR_WEIGHTS, type ColorScaleName } from '@/constants/palette';
@@ -142,12 +141,6 @@ const SCALE_LABELS: Record<ColorScaleName, string> = {
 const TAB_ICONS: TabBarIconName[] = ['home', 'myVisits', 'wishlist', 'contact'];
 const SHOWCASE_ITEM_GAP = 12;
 const SHOWCASE_PROPERTY_HEIGHT = 520;
-
-type ImageKey = keyof typeof ImageAssets;
-
-function resolveImage(key: ImageKey) {
-  return ImageAssets[key];
-}
 
 export function ComponentShowcaseScreen() {
   const router = useRouter();
@@ -454,11 +447,7 @@ export function ComponentShowcaseScreen() {
               renderItem={({ item, animationValue }) => (
                 <View style={[styles.neighborhoodCard, { width: cardWidth }]}>
                   <ParallaxLayer animationValue={animationValue} style={styles.neighborhoodImageWrap}>
-                    <Image
-                      source={resolveImage(item.image)}
-                      style={styles.neighborhoodImage}
-                      contentFit="cover"
-                    />
+                    <LocalityCardImage imageKey={item.image} style={styles.neighborhoodImage} />
                   </ParallaxLayer>
                   <LinearGradient
                     colors={['transparent', 'rgba(0,0,0,0.75)']}

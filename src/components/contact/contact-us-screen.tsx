@@ -1,17 +1,15 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Keyboard,
-  KeyboardAvoidingView,
   Linking,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,7 +39,6 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarInset(embedded ? 0 : 24);
-  const phoneRef = useRef<TextInput>(null);
 
   const [step, setStep] = useState<ContactStep>('form');
   const [name, setName] = useState('');
@@ -49,6 +46,7 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
   const [location, setLocation] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; phone?: string; otp?: string }>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -59,6 +57,24 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
     if (storedMobile) setPhone(storedMobile);
     if (storedCity) setLocation(storedCity);
   }, [storedMobile, storedCity]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const scrollBottomPadding = keyboardVisible
+    ? 16
+    : embedded
+      ? tabBarInset
+      : Math.max(insets.bottom, 16) + 24;
 
   function validate() {
     const nextErrors: { name?: string; phone?: string } = {};
@@ -161,23 +177,13 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
           {!embedded ? <View style={styles.backPlaceholder} /> : null}
         </View>
 
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={insets.top + 48}>
+        <View style={styles.flex}>
           <ScrollView
             bounces={false}
             keyboardShouldPersistTaps="handled"
             automaticallyAdjustKeyboardInsets
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.scroll,
-              {
-                paddingBottom: embedded
-                  ? tabBarInset
-                  : Math.max(insets.bottom, 16) + 24,
-              },
-            ]}>
+            contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPadding }]}>
             {step === 'form' ? (
               <Image
                 source={ImageAssets.contactIllustration}
@@ -237,28 +243,22 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
                 containerStyle={styles.field}
               />
 
-              <View style={styles.field}>
-                <Text style={styles.label}>Phone Number</Text>
-                <Pressable
-                  style={[styles.phoneBox, errors.phone ? styles.phoneBoxError : null]}
-                  onPress={() => phoneRef.current?.focus()}>
-                  <Text style={styles.prefix}>+91-</Text>
-                  <TextInput
-                    ref={phoneRef}
-                    value={phone}
-                    onChangeText={(text) => {
-                      setPhone(text.replace(/\D/g, '').slice(0, 10));
-                      if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
-                    }}
-                    placeholder="Mobile number"
-                    placeholderTextColor={palette.gray[400]}
-                    keyboardType="phone-pad"
-                    textContentType="telephoneNumber"
-                    style={styles.phoneInput}
-                  />
-                </Pressable>
-                {errors.phone ? <Text style={styles.error}>{errors.phone}</Text> : null}
-              </View>
+              <TextField
+                label="Phone Number"
+                labelStyle={compactLabel}
+                value={phone}
+                onChangeText={(text) => {
+                  setPhone(text.replace(/\D/g, '').slice(0, 10));
+                  if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+                }}
+                placeholder="Mobile number"
+                keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                maxLength={10}
+                error={errors.phone}
+                containerStyle={styles.field}
+                leftIcon={<Text style={styles.phonePrefix}>+91-</Text>}
+              />
 
               <TextField
                 label="Location"
@@ -306,7 +306,7 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
               </>
             )}
           </ScrollView>
-        </KeyboardAvoidingView>
+        </View>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -384,46 +384,10 @@ const styles = StyleSheet.create({
   field: {
     gap: 6,
   },
-  label: {
-    fontSize: 12,
-    lineHeight: 18,
-    ...fontStyleForWeight('medium'),
-    color: palette.gray[700],
-  },
-  phoneBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: palette.gray[300],
-    borderRadius: Radius.sm,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: palette.white,
-    minHeight: 48,
-    shadowColor: '#0A0D12',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  phoneBoxError: {
-    borderColor: palette.red[300],
-  },
-  prefix: {
+  phonePrefix: {
     fontSize: 16,
-    lineHeight: 24,
     ...fontStyleForWeight('medium'),
     color: palette.gray[400],
-  },
-  phoneInput: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 4,
-    padding: 0,
-    fontSize: 16,
-    lineHeight: 24,
-    ...fontStyleForWeight('medium'),
-    color: palette.black,
   },
   error: {
     fontSize: 12,

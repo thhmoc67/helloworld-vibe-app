@@ -1,5 +1,8 @@
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView } from 'expo-symbols';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,11 +18,14 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { SegmentedTabToggle } from '@/components/ui/segmented-tab-toggle';
 import { Typography } from '@/components/ui/typography';
+import { ImageAssets } from '@/constants/assets';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+import { queryKeys } from '@/queries/keys';
 import { usePropertyVisitSlots } from '@/queries/use-property-visit-slots';
 import { useAuthStore } from '@/stores/auth-store';
 import { useBookingDraftStore } from '@/stores/booking-draft-store';
+import type { BookingDraft } from '@/types/booking-payment';
 import type { OccupancyType, OccupantDetails, PropertyCategory } from '@/types/booking';
 import {
     buildBookRoomOptions,
@@ -67,6 +73,12 @@ type HdpVisitSheetProps = {
   initialTab?: VisitSheetTab;
   /** When true, only the schedule-visit flow is shown (no Book Now tab). */
   visitOnly?: boolean;
+  /** When true, only the Book Now flow is shown (no Schedule a Visit tab). */
+  bookOnly?: boolean;
+  /** Pre-fill room and occupant details when editing an existing booking draft. */
+  editDraft?: BookingDraft | null;
+  /** Called after the booking draft is saved instead of navigating to /booking. */
+  onBookingUpdated?: () => void;
 };
 
 function validateVisitName(name: string) {
@@ -223,46 +235,41 @@ function TimeSlotRow({
 }
 
 function VisitConfirmedContent({
-  propertyName,
   scheduleLabel,
   onViewTours,
   onDone,
 }: {
-  propertyName: string;
   scheduleLabel: string;
   onViewTours: () => void;
   onDone: () => void;
 }) {
   return (
-    <View style={styles.confirmedContent}>
-      <View style={styles.confirmedIcon}>
-        <View style={styles.calendarBody}>
-          <View style={styles.calendarHeader} />
-          <View style={styles.calendarGrid}>
-            {Array.from({ length: 6 }).map((_, index) => (
-              <View key={index} style={styles.calendarDot} />
-            ))}
-          </View>
-        </View>
-        <View style={styles.checkBadge}>
-          <SymbolView name="checkmark" size={18} weight="bold" tintColor={palette.white} />
+    <LinearGradient
+      colors={[palette.white, '#F4FCE8']}
+      locations={[0.45, 1]}
+      style={styles.confirmedGradient}>
+      <View style={styles.confirmedContent}>
+        <Image
+          source={ImageAssets.tourConfirmed}
+          style={styles.confirmedIllustration}
+          contentFit="contain"
+        />
+
+        <Typography variant="text" size="xl" weight="bold" style={styles.confirmedTitle}>
+          🎉 Your Property Tour is Confirmed!
+        </Typography>
+
+        <Typography variant="text" size="md" color={palette.gray[800]} style={styles.confirmedBody}>
+          Your property tour is scheduled for {scheduleLabel}. Get ready to check out the space,
+          explore the vibe, and see if it&apos;s the one. See you soon!
+        </Typography>
+
+        <View style={styles.confirmedActions}>
+          <Button label="View My Tours" variant="outline" onPress={onViewTours} style={styles.confirmedButton} />
+          <Button label="Got it!" onPress={onDone} style={styles.confirmedButton} />
         </View>
       </View>
-
-      <Typography variant="text" size="xl" weight="bold" style={styles.confirmedTitle}>
-        🎉 Your Property Tour is Confirmed!
-      </Typography>
-
-      <Typography variant="text" size="md" color={palette.gray[600]} style={styles.confirmedBody}>
-        Your property tour for {propertyName} is scheduled for {scheduleLabel}. Get ready to check
-        out the space, explore the vibe, and see if it&apos;s the one. See you soon!
-      </Typography>
-
-      <View style={styles.confirmedActions}>
-        <Button label="View My Tours" variant="outline" onPress={onViewTours} style={styles.confirmedButton} />
-        <Button label="Got it!" onPress={onDone} style={styles.confirmedButton} />
-      </View>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -291,6 +298,22 @@ function createDefaultVisitContact(): VisitContactDetails {
   };
 }
 
+function occupancyFromDraft(draft: BookingDraft): OccupancyType {
+  const label = draft.occupancyLabel.toLowerCase();
+  if (label.includes('private')) return 'private';
+  if (label.includes('double')) return 'double';
+  if (label.includes('triple')) return 'triple';
+  if (label.includes('quad')) return 'quadruple';
+  return draft.sharingType === 'private' ? 'private' : 'double';
+}
+
+function occupantFromDraft(draft: BookingDraft): OccupantDetails {
+  return {
+    ...draft.occupant,
+    moveInDate: new Date(draft.moveInDate),
+  };
+}
+
 export function HdpVisitSheet({
   visible,
   onClose,
@@ -307,8 +330,12 @@ export function HdpVisitSheet({
   categories,
   initialTab = 'schedule',
   visitOnly = false,
+  bookOnly = false,
+  editDraft = null,
+  onBookingUpdated,
 }: HdpVisitSheetProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const setBookingDraft = useBookingDraftStore((state) => state.setDraft);
   const storedMobile = useAuthStore((state) => state.mobile);
   const insets = useSafeAreaInsets();
@@ -318,7 +345,7 @@ export function HdpVisitSheet({
   const [activeTab, setActiveTab] = useState<VisitSheetTab>(initialTab);
   const { data: slotDays = [], isLoading: slotsLoading } = usePropertyVisitSlots(
     propertyId,
-    visible && (visitOnly || activeTab === 'schedule'),
+    visible && !bookOnly && (visitOnly || activeTab === 'schedule'),
   );
 
   const [scheduleStep, setScheduleStep] = useState<ScheduleStep>('datetime');
@@ -394,7 +421,15 @@ export function HdpVisitSheet({
 
     setScheduleStep('datetime');
     setBookStep('rooms');
-    setActiveTab(visitOnly ? 'schedule' : initialTab);
+    setActiveTab(bookOnly ? 'book' : visitOnly ? 'schedule' : initialTab);
+
+    const draftOccupancy = editDraft ? occupancyFromDraft(editDraft) : occupancyOptions[0];
+    const resolvedOccupancy = occupancyOptions.includes(draftOccupancy)
+      ? draftOccupancy
+      : occupancyOptions[0];
+    const defaultRoomId =
+      buildBookRoomOptions(categories, resolvedOccupancy, startingRent)[0]?.id ?? '1';
+
     setSelectedDate(fallbackDates[0]);
     setSelectedTime(DEFAULT_VISIT_TIME_SLOTS[0]);
     setVisitContact(createDefaultVisitContact());
@@ -403,10 +438,23 @@ export function HdpVisitSheet({
     setOccupantErrors({});
     setOccupantFormError('');
     setCreatingVisit(false);
-    setSelectedOccupancy(occupancyOptions[0]);
-    setSelectedRoomId(buildBookRoomOptions(categories, occupancyOptions[0], startingRent)[0]?.id ?? '1');
-    setOccupantDetails(createDefaultOccupantDetails(storedMobile));
-  }, [categories, fallbackDates, initialTab, occupancyOptions, startingRent, storedMobile, visible, visitOnly]);
+    setSelectedOccupancy(resolvedOccupancy);
+    setSelectedRoomId(editDraft?.roomId ?? defaultRoomId);
+    setOccupantDetails(
+      editDraft ? occupantFromDraft(editDraft) : createDefaultOccupantDetails(storedMobile),
+    );
+  }, [
+    bookOnly,
+    categories,
+    editDraft,
+    fallbackDates,
+    initialTab,
+    occupancyOptions,
+    startingRent,
+    storedMobile,
+    visible,
+    visitOnly,
+  ]);
 
   function handleClose() {
     onClose();
@@ -470,6 +518,7 @@ export function HdpVisitSheet({
       });
 
       if (response.success) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.visits });
         setScheduleStep('confirmed');
       } else {
         setVisitSubmitError(response.error || response.message || 'Something went wrong.');
@@ -554,7 +603,11 @@ export function HdpVisitSheet({
     });
 
     handleClose();
-    router.push('/booking');
+    if (onBookingUpdated) {
+      onBookingUpdated();
+    } else {
+      router.push('/booking');
+    }
   }
 
   const scheduleLabel = formatVisitConfirmation(selectedDate.date, selectedTime.label);
@@ -568,6 +621,7 @@ export function HdpVisitSheet({
   return (
     <BottomSheet visible={visible} onClose={handleClose}>
       <ScrollView
+        style={styles.sheetScroll}
         bounces={false}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -576,18 +630,17 @@ export function HdpVisitSheet({
         contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         {showScheduleConfirmed ? (
           <VisitConfirmedContent
-            propertyName={propertyName}
             scheduleLabel={scheduleLabel}
             onViewTours={handleViewTours}
             onDone={handleClose}
           />
         ) : (
           <>
-            {!visitOnly ? (
+            {!visitOnly && !bookOnly ? (
               <SegmentedTabToggle value={activeTab} onChange={setActiveTab} tabs={VISIT_SHEET_TABS} />
             ) : null}
 
-            {visitOnly || activeTab === 'schedule' ? (
+            {!bookOnly && (visitOnly || activeTab === 'schedule') ? (
               scheduleStep === 'details' ? (
                 <HdpVisitDetailsForm
                   value={visitContact}
@@ -687,6 +740,11 @@ export function HdpVisitSheet({
 }
 
 const styles = StyleSheet.create({
+  sheetScroll: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: palette.white,
+  },
   content: {
     paddingHorizontal: 24,
     paddingTop: 20,
@@ -765,64 +823,23 @@ const styles = StyleSheet.create({
     height: 12,
     backgroundColor: palette.gray[300],
   },
+  confirmedGradient: {
+    marginHorizontal: -24,
+    marginTop: -12,
+    marginBottom: -12,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
   confirmedContent: {
     alignItems: 'center',
     gap: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
-  confirmedIcon: {
-    width: 120,
-    height: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  calendarBody: {
-    width: 88,
-    height: 88,
-    borderRadius: 16,
-    backgroundColor: palette.white,
-    borderWidth: 1,
-    borderColor: palette.gray[200],
-    overflow: 'hidden',
-    shadowColor: '#101828',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  calendarHeader: {
-    height: 22,
-    backgroundColor: palette.helloLime,
-  },
-  calendarGrid: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 10,
-    gap: 6,
-    justifyContent: 'center',
-    alignContent: 'center',
-  },
-  calendarDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-    backgroundColor: palette.gray[200],
-  },
-  checkBadge: {
-    position: 'absolute',
-    right: 8,
-    bottom: 4,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: palette.helloLime,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: palette.white,
+  confirmedIllustration: {
+    width: 200,
+    height: 180,
   },
   confirmedTitle: {
     textAlign: 'center',

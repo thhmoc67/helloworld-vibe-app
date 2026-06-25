@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProfileStackScreen } from '@/components/profile/profile-stack-screen';
 import { AddMateSheet } from '@/components/tenant/mates/add-visitor-sheet';
 import { RoommateCard } from '@/components/tenant/mates/roommate-card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
@@ -35,6 +36,8 @@ export function RoommatesScreen() {
     void queryClient.invalidateQueries({ queryKey: ['room-mates', 'ROOMMATE'] });
   }
 
+  const hasRoommates = Boolean(roommates?.length);
+
   return (
     <ProfileStackScreen title="My Roommates" centerTitle style={styles.screenBody}>
       <View style={styles.content}>
@@ -42,40 +45,42 @@ export function RoommatesScreen() {
           <View style={styles.loader}>
             <ActivityIndicator color={palette.lime[700]} />
           </View>
-        ) : (
+        ) : hasRoommates ? (
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scroll}
             refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}>
-            {roommates?.length ? (
-              roommates.map((mate) => (
-                <RoommateCard
-                  key={mate.id ?? mate.mobile}
-                  mate={mate}
-                  propertyFallback={propertyFallback}
-                />
-              ))
-            ) : (
-              <View style={styles.empty}>
-                <Typography variant="text" size="sm" color={palette.gray[500]}>
-                  You have not added any roommate yet
-                </Typography>
-              </View>
-            )}
+            {roommates?.map((mate) => (
+              <RoommateCard
+                key={mate.id ?? mate.mobile}
+                mate={mate}
+                propertyFallback={propertyFallback}
+              />
+            ))}
           </ScrollView>
+        ) : (
+          <EmptyState
+            fill
+            title="No roommates added yet"
+            subtitle="Add your roommates to keep everyone in the loop."
+            actionLabel="Add Roommate"
+            onAction={() => setSheetVisible(true)}
+          />
         )}
 
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <Pressable
-            style={styles.addButton}
-            onPress={() => setSheetVisible(true)}
-            accessibilityRole="button">
-            <SymbolView name="plus" size={16} tintColor={palette.gray[800]} />
-            <Typography variant="text" size="md" weight="bold" color={palette.gray[800]}>
-              Add Roommate
-            </Typography>
-          </Pressable>
-        </View>
+        {hasRoommates ? (
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <Pressable
+              style={styles.addButton}
+              onPress={() => setSheetVisible(true)}
+              accessibilityRole="button">
+              <SymbolView name="plus" size={16} tintColor={palette.gray[800]} />
+              <Typography variant="text" size="md" weight="bold" color={palette.gray[800]}>
+                Add Roommate
+              </Typography>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
 
       <AddMateSheet
@@ -105,10 +110,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  empty: {
-    paddingVertical: 48,
-    alignItems: 'center',
   },
   footer: {
     position: 'absolute',

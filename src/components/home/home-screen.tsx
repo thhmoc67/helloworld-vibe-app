@@ -16,8 +16,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HwIcon } from '@/components/hw-icon';
+import { LocalityCardImage } from '@/components/locality/locality-card-image';
 import { PropertyCard } from '@/components/property/property-card';
 import { HwCarousel, HwParallaxCarousel, ParallaxLayer } from '@/components/ui/carousel';
+import { EmptyState } from '@/components/ui/empty-state';
 import { GradientText } from '@/components/ui/gradient-text';
 import { SearchInput } from '@/components/ui/search-input';
 import { Typography } from '@/components/ui/typography';
@@ -29,7 +31,6 @@ import {
   NEIGHBORHOODS,
 } from '@/constants/home';
 import palette from '@/constants/palette';
-import { TAB_BAR_HEIGHT } from '@/constants/tab-bar';
 import { Radius } from '@/constants/theme';
 import { VIBE_OPTIONS } from '@/constants/vibes';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
@@ -65,6 +66,8 @@ function SectionTitle({
 const ITEM_GAP = 12;
 const PROPERTY_CAROUSEL_HEIGHT = 540;
 const FEED_CARD_WIDTH = 160;
+const FEEDBACK_BANNER_HEIGHT = 44;
+const FEEDBACK_BANNER_GAP = 12;
 const HEADER_SHADOW_THRESHOLD = 8;
 
 export function HomeScreen() {
@@ -82,6 +85,8 @@ export function HomeScreen() {
   );
   const [showFeedback, setShowFeedback] = useState(true);
   const [headerScrolled, setHeaderScrolled] = useState(false);
+  const scrollBottomPadding =
+    tabBarInset + (showFeedback ? FEEDBACK_BANNER_HEIGHT + FEEDBACK_BANNER_GAP : 0);
 
   const cardWidth = width - 48;
   const slideWidth = cardWidth + ITEM_GAP;
@@ -130,7 +135,7 @@ export function HomeScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={{
           paddingTop: stickyHeaderHeight,
-          paddingBottom: tabBarInset,
+          paddingBottom: scrollBottomPadding,
           flexGrow: 1,
         }}>
         <View style={styles.heroSection}>
@@ -189,11 +194,7 @@ export function HomeScreen() {
             renderItem={({ item, animationValue }) => (
               <View style={[styles.neighborhoodCard, { width: cardWidth }]}>
                 <ParallaxLayer animationValue={animationValue} style={styles.neighborhoodImageWrap}>
-                  <Image
-                    source={resolveImage(item.image)}
-                    style={styles.neighborhoodImage}
-                    contentFit="cover"
-                  />
+                  <LocalityCardImage imageKey={item.image} style={styles.neighborhoodImage} />
                 </ParallaxLayer>
                 <LinearGradient
                   colors={['transparent', 'rgba(0,0,0,0.75)']}
@@ -233,9 +234,13 @@ export function HomeScreen() {
               )}
             />
           ) : (
-            <Typography variant="text" size="sm" color={palette.textSecondary} style={styles.emptyProperties}>
-              No properties found in {city} right now.
-            </Typography>
+            <EmptyState
+              compact
+              title={`No properties found in ${city}`}
+              subtitle="Try another city or check back soon."
+              actionLabel="Change City"
+              onAction={() => router.push('/select-city')}
+            />
           )}
 
           <SectionTitle prefix="Straight from the " highlight="Feed!" />
@@ -314,7 +319,7 @@ export function HomeScreen() {
       </View>
 
       {showFeedback ? (
-        <View style={[styles.feedbackBanner, { bottom: insets.bottom + TAB_BAR_HEIGHT + 8 }]}>
+        <View style={[styles.feedbackBanner, { bottom: tabBarInset + FEEDBACK_BANNER_GAP }]}>
           <Typography variant="text" size="xs" color={palette.textSecondary} style={styles.feedbackText}>
             How was your visit to HW Mahaveer? ›
           </Typography>
@@ -438,10 +443,6 @@ const styles = StyleSheet.create({
     height: PROPERTY_CAROUSEL_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emptyProperties: {
-    paddingVertical: 24,
-    textAlign: 'center',
   },
   neighborhoodCard: {
     height: 200,

@@ -6,14 +6,14 @@ import palette from '@/constants/palette';
 
 type HdpFooterBarProps = {
   visible?: boolean;
-  onRequestCallback?: () => void;
-  onTakeTour?: () => void;
+  onScheduleVisit?: () => void;
+  onBookNow?: () => void;
 };
 
 export function HdpFooterBar({
   visible = true,
-  onRequestCallback,
-  onTakeTour,
+  onScheduleVisit,
+  onBookNow,
 }: HdpFooterBarProps) {
   const insets = useSafeAreaInsets();
 
@@ -23,12 +23,12 @@ export function HdpFooterBar({
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
       <View style={styles.row}>
         <Button
-          label="Request Callback"
+          label="Schedule Visit"
           variant="outline"
-          onPress={onRequestCallback}
+          onPress={onScheduleVisit}
           style={styles.button}
         />
-        <Button label="Take a Tour" onPress={onTakeTour} style={styles.button} />
+        <Button label="Book Now" onPress={onBookNow} style={styles.button} />
       </View>
     </View>
   );

@@ -15,6 +15,7 @@ import { ProfileStackScreen } from '@/components/profile/profile-stack-screen';
 import { AddMateSheet } from '@/components/tenant/mates/add-visitor-sheet';
 import { ToastBanner } from '@/components/tenant/mates/toast-banner';
 import { VisitorCard } from '@/components/tenant/mates/visitor-card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
@@ -62,6 +63,8 @@ export function VisitorsScreen() {
     void queryClient.invalidateQueries({ queryKey: ['room-mates', 'VISITOR'] });
   }
 
+  const hasVisitors = Boolean(visitors?.length);
+
   return (
     <ProfileStackScreen title="My Visitors" centerTitle style={styles.screenBody}>
       <View style={styles.content}>
@@ -69,42 +72,44 @@ export function VisitorsScreen() {
           <View style={styles.loader}>
             <ActivityIndicator color={palette.lime[700]} />
           </View>
-        ) : (
+        ) : hasVisitors ? (
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scroll}
             refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}>
-            {visitors?.length ? (
-              visitors.map((mate) => (
-                <VisitorCard
-                  key={mate.id ?? mate.mobile}
-                  mate={mate}
-                  propertyFallback={propertyFallback}
-                  onVerify={() => handleVerify(mate)}
-                  verifying={verifyingId === (mate.id ?? mate.mobile)}
-                />
-              ))
-            ) : (
-              <View style={styles.empty}>
-                <Typography variant="text" size="sm" color={palette.gray[500]}>
-                  You have not added any visitor yet
-                </Typography>
-              </View>
-            )}
+            {visitors?.map((mate) => (
+              <VisitorCard
+                key={mate.id ?? mate.mobile}
+                mate={mate}
+                propertyFallback={propertyFallback}
+                onVerify={() => handleVerify(mate)}
+                verifying={verifyingId === (mate.id ?? mate.mobile)}
+              />
+            ))}
           </ScrollView>
+        ) : (
+          <EmptyState
+            fill
+            title="No visitors added yet"
+            subtitle="Add and manage your visitor requests here."
+            actionLabel="Add Visitor"
+            onAction={() => setSheetVisible(true)}
+          />
         )}
 
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <Pressable
-            style={styles.addButton}
-            onPress={() => setSheetVisible(true)}
-            accessibilityRole="button">
-            <SymbolView name="plus" size={16} tintColor={palette.gray[800]} />
-            <Typography variant="text" size="md" weight="bold" color={palette.gray[800]}>
-              Add Visitor
-            </Typography>
-          </Pressable>
-        </View>
+        {hasVisitors ? (
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <Pressable
+              style={styles.addButton}
+              onPress={() => setSheetVisible(true)}
+              accessibilityRole="button">
+              <SymbolView name="plus" size={16} tintColor={palette.gray[800]} />
+              <Typography variant="text" size="md" weight="bold" color={palette.gray[800]}>
+                Add Visitor
+              </Typography>
+            </Pressable>
+          </View>
+        ) : null}
 
         <ToastBanner
           message={toastMessage}
@@ -140,10 +145,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  empty: {
-    paddingVertical: 48,
-    alignItems: 'center',
   },
   footer: {
     position: 'absolute',

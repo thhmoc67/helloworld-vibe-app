@@ -46,6 +46,7 @@ export const ImageAssets = {
   appIcon: require('../../assets/images/icon.png'),
   splashIcon: require('../../assets/images/splash-icon.png'),
   hdpTrophy: require('../../assets/hw-vibe/HDP/Top choice trophy.png'),
+  tourConfirmed: require('../../assets/hw-vibe/HDP/Tour Confirmed.png'),
 } as const;
 
 export const TabBarIcons = {
@@ -63,6 +64,14 @@ export const DashboardImages = {
   rentCalendar: require('../../assets/bundled/dashboard/rent-calendar.png'),
   referralIllustration: require('../../assets/bundled/dashboard/referral-illustration.png'),
   moveInKeys: require('../../assets/bundled/dashboard/move-in-keys.png'),
+} as const;
+
+export const VisitorAssets = {
+  noVisitors: require('../../assets/bundled/visitors/no-visitors-pagloo.png'),
+} as const;
+
+export const EmptyStateAssets = {
+  default: require('../../assets/bundled/empty-state/empty-state.png'),
 } as const;
 
 export const DashboardIcons = {

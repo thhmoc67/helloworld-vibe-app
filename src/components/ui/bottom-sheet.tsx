@@ -96,12 +96,14 @@ export function BottomSheet({
         ) : null}
 
         <Animated.View style={[styles.sheet, sheetStyle]}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-            style={styles.keyboardAvoid}>
-            {children}
-          </KeyboardAvoidingView>
+          <View style={styles.sheetSurface}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+              style={styles.keyboardAvoid}>
+              {children}
+            </KeyboardAvoidingView>
+          </View>
         </Animated.View>
       </View>
     </Modal>
@@ -130,13 +132,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sheet: {
+    maxHeight: '88%',
+  },
+  sheetSurface: {
     backgroundColor: palette.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    maxHeight: '88%',
     overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        borderCurve: 'continuous',
+      },
+      default: {},
+    }),
   },
   keyboardAvoid: {
     maxHeight: '100%',
+    overflow: 'hidden',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    ...Platform.select({
+      ios: {
+        borderCurve: 'continuous',
+      },
+      default: {},
+    }),
   },
 });

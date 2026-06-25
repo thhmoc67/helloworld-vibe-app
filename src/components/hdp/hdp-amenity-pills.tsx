@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+import { formatAmenityLabel } from '@/utils/amenity-format';
 
 type HdpAmenityPillsProps = {
   items: string[];
@@ -17,7 +18,7 @@ export function HdpAmenityPills({ items, onViewAll }: HdpAmenityPillsProps) {
       {visible.map((item) => (
         <View key={item} style={styles.pill}>
           <Typography variant="text" size="sm" weight="medium" color={palette.gray[800]}>
-            {item}
+            {formatAmenityLabel(item)}
           </Typography>
         </View>
       ))}

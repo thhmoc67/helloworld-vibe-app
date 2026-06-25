@@ -13,8 +13,8 @@ import { SymbolView } from 'expo-symbols';
 import { CommunityEventCard } from '@/components/community/community-event-card';
 import { CommunityPromoCard } from '@/components/community/community-promo-card';
 import { CommunityRequestSheet } from '@/components/community/community-request-sheet';
+import { EmptyState } from '@/components/ui/empty-state';
 import { TenantScreenHeader } from '@/components/tenant/tenant-screen-header';
-import { Button } from '@/components/ui/button';
 import { SegmentedTabToggle } from '@/components/ui/segmented-tab-toggle';
 import { Typography } from '@/components/ui/typography';
 import { postEventRequest } from '@/api/community';
@@ -64,19 +64,12 @@ export function CommunityEventsScreen() {
         {isLoading ? (
           <ActivityIndicator color={palette.lime[700]} style={styles.loader} />
         ) : showEmpty ? (
-          <View style={styles.empty}>
-            <Typography variant="text" size="lg" weight="medium" style={styles.emptyTitle}>
-              No Events scheduled this week
-            </Typography>
-            <Typography variant="text" size="sm" color={palette.gray[600]} style={styles.emptySubtitle}>
-              Got an idea? Help us plan the next one.
-            </Typography>
-            <Button
-              label="Request Event"
-              onPress={() => setRequestVisible(true)}
-              style={styles.emptyButton}
-            />
-          </View>
+          <EmptyState
+            title="No events scheduled this week"
+            subtitle="Got an idea? Help us plan the next one."
+            actionLabel="Request Event"
+            onAction={() => setRequestVisible(true)}
+          />
         ) : (
           <>
             <View style={styles.grid}>
@@ -137,21 +130,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginVertical: 48,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    gap: 12,
-  },
-  emptyTitle: {
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    textAlign: 'center',
-  },
-  emptyButton: {
-    marginTop: 8,
-    minWidth: 180,
   },
   fab: {
     position: 'absolute',

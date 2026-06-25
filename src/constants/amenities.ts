@@ -1,0 +1,33 @@
+/** Canonical amenity names used in SRP filters and property data. */
+export const AMENITY_NAMES = [
+  'AC',
+  'Attached bathroom',
+  'Balcony',
+  'Carrom Board',
+  'Cloths dry stand',
+  'Coffee Table',
+  'Cots',
+  'Cupboard',
+  'DTH',
+  'Dining table & Chair',
+  'Foosball',
+  'Fridge',
+  'Geyser',
+  'House keeping',
+  'Kitchen',
+  'Lift',
+  'Mattress 5inch',
+  'Mattress 8inch',
+  'Pillow',
+  'RO',
+  'Side table',
+  'Sofa',
+  'Soft furnishing',
+  'Study table',
+  'TV',
+  'Table tennis',
+  'Washing machine',
+  'Water Cooler',
+] as const;
+
+export type AmenityName = (typeof AMENITY_NAMES)[number];

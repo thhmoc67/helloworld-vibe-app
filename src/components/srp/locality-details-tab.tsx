@@ -6,10 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HwParallaxCarousel } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
 import { Typography } from '@/components/ui/typography';
+import { LocalityCardImage } from '@/components/locality/locality-card-image';
 import { ImageAssets } from '@/constants/assets';
 import { NEIGHBORHOODS } from '@/constants/home';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+import { formatAmenityLabel } from '@/utils/amenity-format';
 
 const DAY_CARDS = [
   {
@@ -83,7 +85,7 @@ export function CityDetailsTab({ locality, city }: CityDetailsTabProps) {
           <View key={item} style={styles.amenityItem}>
             <View style={styles.amenityIcon} />
             <Typography variant="text" size="xs" weight="medium" style={styles.amenityLabel}>
-              {item}
+              {formatAmenityLabel(item)}
             </Typography>
           </View>
         ))}
@@ -110,7 +112,7 @@ export function CityDetailsTab({ locality, city }: CityDetailsTabProps) {
         height={180}
         renderItem={({ item }) => (
           <View style={styles.localityCard}>
-            <Image source={ImageAssets[item.image]} style={styles.localityImage} contentFit="cover" />
+            <LocalityCardImage imageKey={item.image} style={styles.localityImage} />
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.75)']}
               style={styles.localityOverlay}>

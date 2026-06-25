@@ -7,32 +7,24 @@ import {
   View,
 } from 'react-native';
 
-import { HwLottie } from '@/components/hw-lottie';
 import { openInvoiceUrl, PaymentCard } from '@/components/tenant/payment-card';
 import { TenantScreenHeader } from '@/components/tenant/tenant-screen-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { SegmentedTabToggle } from '@/components/ui/segmented-tab-toggle';
-import { Typography } from '@/components/ui/typography';
-import { PaymentLottieAssets } from '@/constants/assets';
 import palette from '@/constants/palette';
 import { TAB_SCREEN_EXTRA_PADDING } from '@/constants/tab-bar';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { useInvoicePayment } from '@/hooks/use-invoice-payment';
 import { useTenantInvoices } from '@/queries/use-tenant-invoices';
-import type { TenantInvoice } from '@/types/invoice';
 
 type PaymentsTab = 'pending' | 'past';
 
 function PaymentsEmptyState() {
   return (
-    <View style={styles.emptyState}>
-      <HwLottie source={PaymentLottieAssets.pending} style={styles.emptyLottie} loop />
-      <Typography variant="text" size="lg" weight="medium" style={styles.emptyTitle}>
-        No Payment Due
-      </Typography>
-      <Typography variant="label" size="xs" color={palette.gray[900]} style={styles.emptySubtitle}>
-        Your Payments are sorted. Sit back and enjoy your stay.
-      </Typography>
-    </View>
+    <EmptyState
+      title="No payment due"
+      subtitle="Your payments are sorted. Sit back and enjoy your stay."
+    />
   );
 }
 
@@ -78,11 +70,7 @@ export function TenantPaymentsScreen() {
         ) : tab === 'pending' ? (
           <PaymentsEmptyState />
         ) : (
-          <View style={styles.emptyState}>
-            <Typography variant="text" size="sm" color={palette.gray[500]}>
-              No past payments found
-            </Typography>
-          </View>
+          <EmptyState compact title="No past payments found" />
         )}
       </ScrollView>
     </View>
@@ -104,21 +92,5 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 32,
-  },
-  emptyState: {
-    alignItems: 'center',
-    gap: 16,
-    paddingTop: 24,
-  },
-  emptyLottie: {
-    width: 160,
-    height: 160,
-  },
-  emptyTitle: {
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    textAlign: 'center',
-    paddingHorizontal: 24,
   },
 });

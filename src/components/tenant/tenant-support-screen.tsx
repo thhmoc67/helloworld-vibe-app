@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RaiseRequestSheet } from '@/components/tenant/raise-request-sheet';
 import { SupportTicketCard } from '@/components/tenant/support-ticket-card';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { SegmentedTabToggle } from '@/components/ui/segmented-tab-toggle';
 import { Typography } from '@/components/ui/typography';
 import { HELP_DESK_PHONE } from '@/constants/tenant';
@@ -98,11 +99,16 @@ export function TenantSupportScreen() {
             ))}
           </View>
         ) : (
-          <View style={styles.empty}>
-            <Typography variant="text" size="sm" color={palette.gray[500]}>
-              {tab === 'active' ? 'No active tickets yet' : 'No resolved tickets yet'}
-            </Typography>
-          </View>
+          <EmptyState
+            title={tab === 'active' ? 'No active tickets yet' : 'No resolved tickets yet'}
+            subtitle={
+              tab === 'active'
+                ? 'Raise a request and our team will help you out.'
+                : 'Resolved tickets will appear here once closed.'
+            }
+            actionLabel={tab === 'active' ? 'Raise New Request' : undefined}
+            onAction={tab === 'active' ? () => setSheetVisible(true) : undefined}
+          />
         )}
       </ScrollView>
 
@@ -145,10 +151,6 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 12,
-  },
-  empty: {
-    paddingVertical: 40,
-    alignItems: 'center',
   },
   loader: {
     marginTop: 24,

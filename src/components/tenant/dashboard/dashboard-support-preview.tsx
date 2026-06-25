@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { DashboardSectionHeader } from '@/components/tenant/dashboard/dashboard-section-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
@@ -31,6 +32,7 @@ function TicketPreviewRow({ ticket }: { ticket: SupportTicket }) {
             subject: ticket.subject ?? 'Support ticket',
             ticketNumber: String(ticket.ticket_number ?? ticket.id),
             status: ticket.status ?? 'Open',
+            createdTime: createdAt ?? '',
           },
         })
       }
@@ -81,11 +83,7 @@ export function DashboardSupportPreview({ tickets, onRaiseRequest }: DashboardSu
             </View>
           ))
         ) : (
-          <View style={styles.empty}>
-            <Typography variant="text" size="sm" color={palette.gray[500]}>
-              No tickets yet
-            </Typography>
-          </View>
+          <EmptyState compact title="No tickets yet" />
         )}
 
         <Pressable style={styles.raiseButton} onPress={onRaiseRequest} accessibilityRole="button">
@@ -143,10 +141,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: palette.gray[200],
     marginVertical: 12,
-  },
-  empty: {
-    paddingVertical: 8,
-    alignItems: 'center',
   },
   raiseButton: {
     minHeight: 40,

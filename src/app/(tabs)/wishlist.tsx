@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { TabScreen } from '@/components/navigation/tab-screen';
+import { EmptyState } from '@/components/ui/empty-state';
 import { PropertyCard } from '@/components/property/property-card';
 import { Button } from '@/components/ui/button';
 import { Typography } from '@/components/ui/typography';
@@ -71,16 +72,13 @@ export default function WishlistScreen() {
           <Button label="Try again" onPress={() => refetch()} style={styles.cta} />
         </View>
       ) : properties.length === 0 ? (
-        <View style={styles.centered}>
-          <Typography variant="body" color={palette.textSecondary} style={styles.subtitle}>
-            Tap the heart on any property to save it here.
-          </Typography>
-          <Pressable onPress={() => router.push('/')}>
-            <Typography variant="text" size="sm" weight="medium" color={palette.blue[600]}>
-              Browse properties
-            </Typography>
-          </Pressable>
-        </View>
+        <EmptyState
+          fill
+          title="Your wishlist is empty"
+          subtitle="Tap the heart on any property to save it here."
+          actionLabel="Browse Properties"
+          onAction={() => router.push('/')}
+        />
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
