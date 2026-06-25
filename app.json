@@ -10,11 +10,12 @@
     "newArchEnabled": true,
     "owner": "dayal-thehelloworld",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "supportsTablet": true,
       "bundleIdentifier": "org.HelloWorldTechnologiesIndiaPvtLtd.react.native.HelloWorld",
       "buildNumber": "151",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "appleTeamId": "FY57RG66TM"
     },
     "android": {
       "adaptiveIcon": {
@@ -74,7 +75,9 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/Satoshi-Variable.ttf"]
+          "fonts": [
+            "./assets/fonts/Satoshi-Variable.ttf"
+          ]
         }
       ]
     ],
