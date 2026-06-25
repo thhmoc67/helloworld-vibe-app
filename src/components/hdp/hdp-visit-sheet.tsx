@@ -571,6 +571,7 @@ export function HdpVisitSheet({
         bounces={false}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         {showScheduleConfirmed ? (

@@ -163,6 +163,7 @@ export function EmergencyContactProfileScreen() {
           <ScrollView
             contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
             showsVerticalScrollIndicator={false}>
             {isEditing ? (
               <View style={styles.form}>

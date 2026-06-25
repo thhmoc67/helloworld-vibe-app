@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
+  Pressable,
   StyleSheet,
   TextInput,
   View,
@@ -43,14 +44,22 @@ export function TextField({
   onBlur,
   ...props
 }: TextFieldProps) {
+  const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
   const hasError = Boolean(error);
   const isDisabled = editable === false;
 
+  function focusInput() {
+    if (!isDisabled) {
+      inputRef.current?.focus();
+    }
+  }
+
   return (
     <View style={[styles.wrapper, containerStyle]}>
       <ThemedText style={[styles.label, labelStyle]}>{label}</ThemedText>
-      <View
+      <Pressable
+        onPress={focusInput}
         style={[
           styles.inputShell,
           focused && !hasError && styles.inputFocused,
@@ -60,6 +69,7 @@ export function TextField({
         ]}>
         {leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}
         <TextInput
+          ref={inputRef}
           editable={editable}
           placeholderTextColor={palette.textPlaceholder}
           style={[styles.input, isDisabled && styles.inputTextDisabled, style]}
@@ -74,7 +84,7 @@ export function TextField({
           {...props}
         />
         {hasError ? <FieldErrorIcon /> : null}
-      </View>
+      </Pressable>
       {hasError ? (
         <ThemedText style={styles.error}>{error}</ThemedText>
       ) : hint ? (

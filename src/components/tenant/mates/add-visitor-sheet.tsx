@@ -25,6 +25,10 @@ type FormState = {
 
 const EMPTY_FORM: FormState = { name: '', mobile: '', email: '' };
 
+function getMateLabel(inType: RoomMateType) {
+  return inType === 'ROOMMATE' ? 'Roommate' : 'Visitor';
+}
+
 function validateForm(form: FormState) {
   const errors: Partial<FormState> = {};
   if (!form.name.trim()) errors.name = 'Enter full name';
@@ -34,6 +38,7 @@ function validateForm(form: FormState) {
 }
 
 export function AddMateSheet({ visible, inType, bookingId, onClose, onSuccess }: AddMateSheetProps) {
+  const mateLabel = getMateLabel(inType);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormState>>({});
   const [loading, setLoading] = useState(false);
@@ -67,14 +72,14 @@ export function AddMateSheet({ visible, inType, bookingId, onClose, onSuccess }:
         inType,
       });
       if (result?.success === false) {
-        setSubmitError(result.message ?? 'Failed to add visitor');
+        setSubmitError(result.message ?? `Failed to add ${mateLabel.toLowerCase()}`);
         return;
       }
       reset();
       onSuccess();
       onClose();
     } catch {
-      setSubmitError('Failed to add visitor. Please try again.');
+      setSubmitError(`Failed to add ${mateLabel.toLowerCase()}. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -82,9 +87,12 @@ export function AddMateSheet({ visible, inType, bookingId, onClose, onSuccess }:
 
   return (
     <BottomSheet visible={visible} onClose={handleClose}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets>
         <Typography variant="text" size="lg" weight="bold" style={styles.title}>
-          Add Visitor
+          Add {mateLabel}
         </Typography>
 
         <TextField
@@ -119,7 +127,7 @@ export function AddMateSheet({ visible, inType, bookingId, onClose, onSuccess }:
           </Typography>
         ) : null}
 
-        <Button label="Add Visitor" loading={loading} onPress={handleSubmit} style={styles.submit} />
+        <Button label={`Add ${mateLabel}`} loading={loading} onPress={handleSubmit} style={styles.submit} />
       </ScrollView>
     </BottomSheet>
   );

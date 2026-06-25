@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
+  Pressable,
   StyleSheet,
   TextInput,
   View,
@@ -30,36 +31,47 @@ export function TextArea({
   onBlur,
   ...props
 }: TextAreaProps) {
+  const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
   const hasError = Boolean(error);
   const isDisabled = editable === false;
 
+  function focusInput() {
+    if (!isDisabled) {
+      inputRef.current?.focus();
+    }
+  }
+
   return (
     <View style={[styles.wrapper, containerStyle]}>
       <ThemedText style={styles.label}>{label}</ThemedText>
-      <TextInput
-        multiline
-        textAlignVertical="top"
-        editable={editable}
-        placeholderTextColor={palette.textPlaceholder}
+      <Pressable
+        onPress={focusInput}
         style={[
           styles.input,
           focused && !hasError && styles.inputFocused,
           hasError && styles.inputError,
           focused && hasError && styles.inputErrorFocused,
           isDisabled && styles.inputDisabled,
-          style,
-        ]}
-        onFocus={(e) => {
-          setFocused(true);
-          onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          onBlur?.(e);
-        }}
-        {...props}
-      />
+        ]}>
+        <TextInput
+          ref={inputRef}
+          multiline
+          textAlignVertical="top"
+          editable={editable}
+          placeholderTextColor={palette.textPlaceholder}
+          style={[styles.textInput, isDisabled && styles.inputTextDisabled, style]}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          {...props}
+        />
+      </Pressable>
       {hasError ? (
         <ThemedText style={styles.error}>{error}</ThemedText>
       ) : hint ? (
@@ -84,13 +96,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.borderDefault,
     borderRadius: Radius.sm,
+    backgroundColor: palette.white,
+  },
+  textInput: {
+    flex: 1,
+    minHeight: 96,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: palette.white,
     fontSize: 16,
     lineHeight: 24,
     ...fontStyleForWeight('regular'),
     color: palette.textPrimary,
+  },
+  inputTextDisabled: {
+    color: palette.textSecondary,
   },
   inputFocused: {
     borderColor: palette.lime[400],

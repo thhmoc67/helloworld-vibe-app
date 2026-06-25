@@ -168,6 +168,7 @@ export function ContactUsScreen({ embedded = false }: { embedded?: boolean }) {
           <ScrollView
             bounces={false}
             keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               styles.scroll,

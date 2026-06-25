@@ -1,4 +1,5 @@
 import { SymbolView } from 'expo-symbols';
+import { useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { Typography } from '@/components/ui/typography';
@@ -32,6 +33,7 @@ export function DiscountCodeInput({
   onClear,
   editable = true,
 }: DiscountCodeInputProps) {
+  const inputRef = useRef<TextInput>(null);
   const isApplied = Boolean(appliedCode);
 
   return (
@@ -40,13 +42,19 @@ export function DiscountCodeInput({
         {label}
       </Typography>
 
-      <View
+      <Pressable
+        onPress={() => {
+          if (editable && !isApplied && !loading) {
+            inputRef.current?.focus();
+          }
+        }}
         style={[
           styles.inputRow,
           isApplied && styles.inputRowApplied,
           Boolean(error) && styles.inputRowError,
         ]}>
         <TextInput
+          ref={inputRef}
           value={isApplied ? appliedCode : value}
           onChangeText={onChange}
           placeholder={placeholder}
@@ -80,7 +88,7 @@ export function DiscountCodeInput({
             )}
           </Pressable>
         )}
-      </View>
+      </Pressable>
 
       {error ? (
         <Typography variant="text" size="xs" color={palette.red[600]}>

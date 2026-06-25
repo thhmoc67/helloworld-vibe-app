@@ -1,54 +1,90 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { SymbolView } from 'expo-symbols';
+import { useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProfileStackScreen } from '@/components/profile/profile-stack-screen';
+import { AddMateSheet } from '@/components/tenant/mates/add-visitor-sheet';
 import { RoommateCard } from '@/components/tenant/mates/roommate-card';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
+import { Radius } from '@/constants/theme';
 import { useRoomMates } from '@/queries/use-roommates';
 import { useTenantProfile } from '@/stores/tenant-store';
 
 export function RoommatesScreen() {
+  const insets = useSafeAreaInsets();
   const profile = useTenantProfile();
+  const queryClient = useQueryClient();
   const { data: roommates, isLoading, isRefetching, refetch } = useRoomMates('ROOMMATE');
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   const propertyFallback = [profile?.propertyInfo?.address?.flatNo, profile?.propertyInfo?.name]
     .filter(Boolean)
     .join(' · ');
 
+  function handleAdded() {
+    void queryClient.invalidateQueries({ queryKey: ['room-mates', 'ROOMMATE'] });
+  }
+
   return (
     <ProfileStackScreen title="My Roommates" centerTitle style={styles.screenBody}>
-      {isLoading ? (
-        <View style={styles.loader}>
-          <ActivityIndicator color={palette.lime[700]} />
+      <View style={styles.content}>
+        {isLoading ? (
+          <View style={styles.loader}>
+            <ActivityIndicator color={palette.lime[700]} />
+          </View>
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scroll}
+            refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}>
+            {roommates?.length ? (
+              roommates.map((mate) => (
+                <RoommateCard
+                  key={mate.id ?? mate.mobile}
+                  mate={mate}
+                  propertyFallback={propertyFallback}
+                />
+              ))
+            ) : (
+              <View style={styles.empty}>
+                <Typography variant="text" size="sm" color={palette.gray[500]}>
+                  You have not added any roommate yet
+                </Typography>
+              </View>
+            )}
+          </ScrollView>
+        )}
+
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <Pressable
+            style={styles.addButton}
+            onPress={() => setSheetVisible(true)}
+            accessibilityRole="button">
+            <SymbolView name="plus" size={16} tintColor={palette.gray[800]} />
+            <Typography variant="text" size="md" weight="bold" color={palette.gray[800]}>
+              Add Roommate
+            </Typography>
+          </Pressable>
         </View>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scroll}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}>
-          {roommates?.length ? (
-            roommates.map((mate) => (
-              <RoommateCard
-                key={mate.id ?? mate.mobile}
-                mate={mate}
-                propertyFallback={propertyFallback}
-              />
-            ))
-          ) : (
-            <View style={styles.empty}>
-              <Typography variant="text" size="sm" color={palette.gray[500]}>
-                You have not added any roommate yet
-              </Typography>
-            </View>
-          )}
-        </ScrollView>
-      )}
+      </View>
+
+      <AddMateSheet
+        visible={sheetVisible}
+        inType="ROOMMATE"
+        bookingId={profile?.bookingId}
+        onClose={() => setSheetVisible(false)}
+        onSuccess={handleAdded}
+      />
     </ProfileStackScreen>
   );
 }
@@ -57,9 +93,12 @@ const styles = StyleSheet.create({
   screenBody: {
     paddingHorizontal: 0,
   },
+  content: {
+    flex: 1,
+  },
   scroll: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingBottom: 120,
     gap: 12,
   },
   loader: {
@@ -70,5 +109,25 @@ const styles = StyleSheet.create({
   empty: {
     paddingVertical: 48,
     alignItems: 'center',
+  },
+  footer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 0,
+  },
+  addButton: {
+    minHeight: 48,
+    borderRadius: Radius.full,
+    backgroundColor: palette.lime[300],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#0A0D12',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
 });

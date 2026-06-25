@@ -130,6 +130,7 @@ export function RequestCallbackSheet({
       ) : step === 'otp' ? (
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 16 }]}>
           <Typography variant="heading" weight="bold" style={styles.title}>
             Verify your number
@@ -174,6 +175,7 @@ export function RequestCallbackSheet({
       ) : (
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 16 }]}>
           <Typography variant="heading" weight="bold" style={styles.title}>
             Request a callback

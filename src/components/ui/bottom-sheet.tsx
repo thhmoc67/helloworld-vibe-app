@@ -78,8 +78,11 @@ export function BottomSheet({
   return (
     <Modal transparent visible animationType="none" onRequestClose={requestClose}>
       <View style={styles.root}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={requestClose} accessibilityLabel="Close">
-          <Animated.View style={[styles.backdrop, backdropStyle]} />
+        <Pressable
+          style={styles.backdropPress}
+          onPress={requestClose}
+          accessibilityLabel="Close">
+          <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]} />
         </Pressable>
 
         {showCloseButton ? (
@@ -108,10 +111,11 @@ export function BottomSheet({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    justifyContent: 'flex-end',
+  },
+  backdropPress: {
+    flex: 1,
   },
   backdrop: {
-    ...StyleSheet.absoluteFill,
     backgroundColor: palette.black,
   },
   closeButton: {

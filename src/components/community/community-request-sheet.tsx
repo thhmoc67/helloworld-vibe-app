@@ -68,6 +68,7 @@ export function CommunityRequestSheet({ visible, onClose, onSubmit }: CommunityR
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}>
         <Typography variant="text" size="lg" weight="medium">
           What's the Event

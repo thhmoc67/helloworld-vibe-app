@@ -232,6 +232,8 @@ export function BookingScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[styles.content, { paddingBottom: 120 + insets.bottom }]}>
         <Typography variant="display" size="sm" weight="bold">
           You&apos;re Almost There!

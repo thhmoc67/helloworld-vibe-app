@@ -59,7 +59,11 @@ export function RaiseRequestSheet({ visible, onClose, onSubmit }: RaiseRequestSh
 
   return (
     <BottomSheet visible={visible} onClose={handleClose}>
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        showsVerticalScrollIndicator={false}>
         <Typography variant="text" size="lg" weight="medium" style={styles.title}>
           {step === 'category' ? "What's this about?" : 'Help us narrow it down'}
         </Typography>
@@ -112,7 +116,7 @@ export function RaiseRequestSheet({ visible, onClose, onSubmit }: RaiseRequestSh
         )}
 
         {step === 'category' && loading ? <ActivityIndicator color={palette.lime[700]} /> : null}
-      </View>
+      </ScrollView>
     </BottomSheet>
   );
 }
