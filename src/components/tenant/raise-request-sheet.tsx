@@ -1,33 +1,125 @@
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
+import { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ColorValue,
+} from 'react-native';
 
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Typography } from '@/components/ui/typography';
-import { SUPPORT_CATEGORIES } from '@/constants/tenant';
+import type { RaiseSupportRequestPayload } from '@/hooks/use-raise-support-request';
 import palette from '@/constants/palette';
+import { useKbCategories } from '@/queries/use-kb-categories';
+import type { TicketCategory, TicketCategoryChild } from '@/types/ticket';
+import { getSupportCategoryIcon, getVisibleSubcategories } from '@/utils/support-category-icons';
 import { Radius } from '@/constants/theme';
+
+const MOVE_OUT_CATEGORY = {
+  name: 'Move out',
+  key: 'move-out',
+} as const;
 
 type RaiseRequestSheetProps = {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (payload: { category: string; description: string }) => Promise<void>;
+  onSubmit: (payload: RaiseSupportRequestPayload) => Promise<string | void>;
 };
 
+type Step = 'category' | 'details' | 'success';
+
+type SelectedCategory =
+  | { type: 'api'; category: TicketCategory }
+  | { type: 'move-out' };
+
+function CategoryTile({
+  label,
+  icon,
+  selected,
+  onPress,
+}: {
+  label: string;
+  icon: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const iconColor: ColorValue = selected ? palette.blue[800] : palette.gray[700];
+  const textColor = selected ? palette.blue[800] : palette.gray[700];
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.categoryTile, selected ? styles.categoryTileSelected : styles.categoryTileDefault]}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}>
+      <SymbolView name={icon as never} size={24} tintColor={iconColor} />
+      <Typography variant="label" size="xs" weight="medium" color={textColor} style={styles.categoryLabel}>
+        {label}
+      </Typography>
+    </Pressable>
+  );
+}
+
+function SubcategoryRow({
+  item,
+  selected,
+  onPress,
+}: {
+  item: TicketCategoryChild;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.subcategoryRow, selected && styles.subcategoryRowSelected]}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}>
+      <Typography variant="text" size="sm" weight="medium" color={palette.gray[900]}>
+        {item.name}
+      </Typography>
+      {selected ? <SymbolView name="checkmark" size={14} tintColor={palette.lime[700]} /> : null}
+    </Pressable>
+  );
+}
+
 export function RaiseRequestSheet({ visible, onClose, onSubmit }: RaiseRequestSheetProps) {
-  const [step, setStep] = useState<'category' | 'details'>('category');
-  const [category, setCategory] = useState<string | null>(null);
+  const router = useRouter();
+  const { data: categories = [], isLoading, isError, refetch } = useKbCategories();
+  const [step, setStep] = useState<Step>('category');
+  const [selectedCategory, setSelectedCategory] = useState<SelectedCategory | null>(null);
+  const [subCategory, setSubCategory] = useState<TicketCategoryChild | null>(null);
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [ticketNumber, setTicketNumber] = useState<string | null>(null);
+
+  const subcategories = useMemo(() => {
+    if (!selectedCategory || selectedCategory.type !== 'api') {
+      return [];
+    }
+    return getVisibleSubcategories(selectedCategory.category.name, selectedCategory.category.child ?? []);
+  }, [selectedCategory]);
+
+  const selectedCategoryLabel =
+    selectedCategory?.type === 'move-out'
+      ? MOVE_OUT_CATEGORY.name
+      : selectedCategory?.category.name ?? '';
 
   function reset() {
     setStep('category');
-    setCategory(null);
+    setSelectedCategory(null);
+    setSubCategory(null);
     setDescription('');
     setError('');
     setLoading(false);
+    setTicketNumber(null);
   }
 
   function handleClose() {
@@ -35,9 +127,35 @@ export function RaiseRequestSheet({ visible, onClose, onSubmit }: RaiseRequestSh
     onClose();
   }
 
-  async function handleSubmit() {
-    if (!category) {
+  function handleCategoryContinue() {
+    if (!selectedCategory) {
       setError('Please choose a category');
+      return;
+    }
+
+    if (selectedCategory.type === 'move-out') {
+      handleClose();
+      router.push('/profile/move-out');
+      return;
+    }
+
+    if (subcategories.length === 0) {
+      setError('No issues are available for this category right now.');
+      return;
+    }
+
+    setError('');
+    setSubCategory(subcategories.length === 1 ? subcategories[0] : null);
+    setStep('details');
+  }
+
+  async function handleSubmit() {
+    if (!selectedCategory || selectedCategory.type !== 'api') {
+      setError('Please choose a category');
+      return;
+    }
+    if (!subCategory) {
+      setError('Please choose an issue type');
       return;
     }
     if (!description.trim()) {
@@ -48,8 +166,18 @@ export function RaiseRequestSheet({ visible, onClose, onSubmit }: RaiseRequestSh
     setError('');
     setLoading(true);
     try {
-      await onSubmit({ category, description: description.trim() });
-      handleClose();
+      const number = await onSubmit({
+        category: selectedCategory.category.name,
+        subCategory: subCategory.name,
+        subCategoryId: subCategory.id,
+        description: description.trim(),
+      });
+      if (number) {
+        setTicketNumber(number);
+        setStep('success');
+      } else {
+        handleClose();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to raise request');
     } finally {
@@ -64,58 +192,166 @@ export function RaiseRequestSheet({ visible, onClose, onSubmit }: RaiseRequestSh
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}>
-        <Typography variant="text" size="lg" weight="medium" style={styles.title}>
-          {step === 'category' ? "What's this about?" : 'Help us narrow it down'}
-        </Typography>
-
         {step === 'category' ? (
-          <View style={styles.categoryGrid}>
-            {SUPPORT_CATEGORIES.map((item) => (
-              <Pressable
-                key={item.id}
-                style={[styles.categoryItem, category === item.id && styles.categoryItemActive]}
-                onPress={() => {
-                  setCategory(item.id);
-                  setStep('details');
-                }}
-                accessibilityRole="button">
-                <Typography variant="label" size="xs" weight="medium" style={styles.categoryLabel}>
-                  {item.label}
+          <>
+            <Typography variant="text" size="md" weight="medium" style={styles.title}>
+              What&apos;s this about?
+            </Typography>
+
+            {isLoading ? (
+              <ActivityIndicator color={palette.lime[700]} style={styles.loader} />
+            ) : (
+              <View style={styles.categoryGrid}>
+                {categories.map((category) => {
+                  const selected =
+                    selectedCategory?.type === 'api' &&
+                    selectedCategory.category.name === category.name;
+
+                  return (
+                    <CategoryTile
+                      key={category.name}
+                      label={category.name}
+                      icon={getSupportCategoryIcon(category.name)}
+                      selected={selected}
+                      onPress={() => {
+                        setSelectedCategory({ type: 'api', category });
+                        setError('');
+                      }}
+                    />
+                  );
+                })}
+
+                <CategoryTile
+                  label={MOVE_OUT_CATEGORY.name}
+                  icon={getSupportCategoryIcon(MOVE_OUT_CATEGORY.name)}
+                  selected={selectedCategory?.type === 'move-out'}
+                  onPress={() => {
+                    setSelectedCategory({ type: 'move-out' });
+                    setError('');
+                  }}
+                />
+              </View>
+            )}
+
+            {isError ? (
+              <Pressable onPress={() => void refetch()} accessibilityRole="button">
+                <Typography variant="label" color={palette.error} style={styles.errorText}>
+                  Unable to load categories.{' '}
+                  <Typography variant="label" color={palette.lime[700]}>
+                    Try again
+                  </Typography>
                 </Typography>
               </Pressable>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.details}>
-            <Typography variant="label" color={palette.gray[500]}>
-              Category: {SUPPORT_CATEGORIES.find((item) => item.id === category)?.label}
-            </Typography>
-            <TextField
-              label="Describe your issue"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              style={styles.textArea}
-            />
+            ) : null}
+
             {error ? (
               <Typography variant="label" color={palette.error}>
                 {error}
               </Typography>
             ) : null}
+
             <View style={styles.actions}>
-              <Button label="Back" variant="outline" onPress={() => setStep('category')} style={styles.actionButton} />
+              <Button label="Cancel" variant="outline" onPress={handleClose} style={styles.actionButton} />
+              <Button
+                label="Continue"
+                onPress={handleCategoryContinue}
+                disabled={!selectedCategory || isLoading}
+                style={styles.actionButton}
+              />
+            </View>
+          </>
+        ) : null}
+
+        {step === 'details' ? (
+          <>
+            <Typography variant="text" size="md" weight="medium" style={styles.title}>
+              Help us narrow it down
+            </Typography>
+
+            <Pressable
+              style={styles.dropdown}
+              onPress={() => {
+                setError('');
+                setStep('category');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Change category">
+              <Typography variant="text" size="md" weight="medium" color={palette.gray[800]}>
+                {selectedCategoryLabel}
+              </Typography>
+              <SymbolView name="chevron.down" size={14} tintColor={palette.gray[500]} />
+            </Pressable>
+
+            <View style={styles.subcategoryList}>
+              {subcategories.map((item) => (
+                <SubcategoryRow
+                  key={item.id}
+                  item={item}
+                  selected={subCategory?.id === item.id}
+                  onPress={() => {
+                    setSubCategory(item);
+                    setError('');
+                  }}
+                />
+              ))}
+            </View>
+
+            <TextField
+              label="Describe your issue"
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Please let us know about your issue"
+              multiline
+              numberOfLines={5}
+              style={styles.textArea}
+            />
+
+            {error ? (
+              <Typography variant="label" color={palette.error}>
+                {error}
+              </Typography>
+            ) : null}
+
+            <View style={styles.actions}>
+              <Button
+                label="Cancel"
+                variant="outline"
+                onPress={() => {
+                  setError('');
+                  setStep('category');
+                }}
+                style={styles.actionButton}
+              />
               <Button
                 label="Submit"
                 loading={loading}
                 onPress={handleSubmit}
+                disabled={!subCategory || !description.trim()}
                 style={styles.actionButton}
               />
             </View>
-          </View>
-        )}
+          </>
+        ) : null}
 
-        {step === 'category' && loading ? <ActivityIndicator color={palette.lime[700]} /> : null}
+        {step === 'success' && ticketNumber ? (
+          <View style={styles.success}>
+            <View style={styles.successIcon}>
+              <Typography variant="display" size="xs" weight="bold" color={palette.lime[600]}>
+                ✓
+              </Typography>
+            </View>
+            <Typography variant="text" size="md" color={palette.gray[600]}>
+              Ticket ID: {ticketNumber}
+            </Typography>
+            <Typography variant="text" size="lg" weight="bold" style={styles.successHeading}>
+              We have received your request
+            </Typography>
+            <Typography variant="text" size="sm" color={palette.gray[500]} style={styles.successDesc}>
+              Our team will contact you soon regarding the ticket you created.
+            </Typography>
+            <Button label="Done" onPress={handleClose} style={styles.doneButton} />
+          </View>
+        ) : null}
       </ScrollView>
     </BottomSheet>
   );
@@ -129,42 +365,116 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'center',
+    color: palette.black,
+  },
+  loader: {
+    marginVertical: 24,
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  categoryItem: {
+  categoryTile: {
     width: '23%',
-    minWidth: 72,
+    minWidth: 78,
     height: 84,
     borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: palette.gray[200],
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
   },
-  categoryItemActive: {
-    borderColor: palette.lime[700],
-    backgroundColor: palette.lime[50],
+  categoryTileDefault: {
+    backgroundColor: palette.white,
+    borderWidth: 1,
+    borderColor: palette.gray[200],
+  },
+  categoryTileSelected: {
+    backgroundColor: palette.blue[100],
+    borderWidth: 1,
+    borderColor: palette.blue[100],
   },
   categoryLabel: {
     textAlign: 'center',
   },
-  details: {
+  dropdown: {
+    minHeight: 44,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: palette.gray[300],
+    backgroundColor: palette.white,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#0A0D12',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  subcategoryList: {
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: palette.gray[200],
+    overflow: 'hidden',
+  },
+  subcategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: palette.gray[200],
+    backgroundColor: palette.white,
+  },
+  subcategoryRowSelected: {
+    backgroundColor: palette.lime[50],
   },
   textArea: {
-    minHeight: 120,
+    minHeight: 124,
     textAlignVertical: 'top',
   },
   actions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
+    marginTop: 4,
   },
   actionButton: {
     flex: 1,
+  },
+  errorText: {
+    textAlign: 'center',
+  },
+  success: {
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  successIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.full,
+    backgroundColor: palette.lime[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  successHeading: {
+    textAlign: 'center',
+    color: palette.gray[900],
+  },
+  successDesc: {
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  doneButton: {
+    width: '100%',
+    marginTop: 16,
   },
 });

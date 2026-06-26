@@ -61,6 +61,9 @@ export default function RootLayout() {
         <Stack.Screen name="sos" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="complete-payment" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="ticket-details" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="ticket-categories" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="ticket-subcategories" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="create-new-ticket" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="community-events" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="community-event" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
@@ -15,23 +16,24 @@ export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
   const router = useRouter();
   const active = isActiveTicket(ticket.status);
   const createdAt = ticket.createdTime ?? ticket.created_at;
+  const resolvedAt = (ticket as { resolved_at?: string }).resolved_at;
+  const ticketNumber = ticket.ticket_number ?? ticket.id;
+
+  function openDetails() {
+    router.push({
+      pathname: '/ticket-details',
+      params: {
+        id: String(ticket.id),
+        subject: ticket.subject ?? 'Support ticket',
+        ticketNumber: String(ticketNumber),
+        status: ticket.status ?? 'Open',
+        createdTime: createdAt ?? '',
+      },
+    });
+  }
 
   return (
-    <Pressable
-      style={styles.card}
-      onPress={() =>
-        router.push({
-          pathname: '/ticket-details',
-          params: {
-            id: String(ticket.id),
-            subject: ticket.subject ?? 'Support ticket',
-            ticketNumber: String(ticket.ticket_number ?? ticket.id),
-            status: ticket.status ?? 'Open',
-            createdTime: createdAt ?? '',
-          },
-        })
-      }
-      accessibilityRole="button">
+    <Pressable style={styles.card} onPress={openDetails} accessibilityRole="button">
       <View style={styles.headerRow}>
         <Typography variant="text" size="sm" weight="medium" style={styles.subject} numberOfLines={1}>
           {ticket.subject ?? 'Support request'}
@@ -46,9 +48,24 @@ export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
           </Typography>
         </View>
       </View>
-      <Typography variant="label" size="xs" color={palette.gray[500]}>
-        Raised on {formatDisplayDate(createdAt)}
-      </Typography>
+
+      <View style={styles.metaRow}>
+        <Typography variant="label" size="xs" color={palette.gray[500]}>
+          Ticket ID: {ticketNumber}
+        </Typography>
+        <Typography variant="label" size="xs" weight="medium" color={palette.gray[900]}>
+          {active
+            ? `Raised on ${formatDisplayDate(createdAt)}`
+            : `Resolved on ${formatDisplayDate(resolvedAt ?? createdAt)}`}
+        </Typography>
+      </View>
+
+      <Pressable style={styles.detailsLink} onPress={openDetails} accessibilityRole="button">
+        <Typography variant="text" size="sm" weight="medium" color={palette.lime[700]}>
+          View Details
+        </Typography>
+        <SymbolView name="chevron.right" size={12} tintColor={palette.lime[700]} />
+      </Pressable>
     </Pressable>
   );
 }
@@ -56,11 +73,15 @@ export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: palette.white,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: palette.gray[200],
-    padding: 16,
-    gap: 8,
+    borderRadius: Radius.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 12,
+    shadowColor: '#8690A3',
+    shadowOffset: { width: 0, height: 1.318 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10.2,
+    elevation: 2,
   },
   headerRow: {
     flexDirection: 'row',
@@ -70,6 +91,7 @@ const styles = StyleSheet.create({
   },
   subject: {
     flex: 1,
+    color: palette.gray[900],
   },
   badge: {
     borderRadius: Radius.full,
@@ -77,9 +99,21 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   badgeActive: {
-    backgroundColor: palette.blue[100],
+    backgroundColor: palette.blue[50],
   },
   badgeResolved: {
     backgroundColor: palette.lime[50],
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  detailsLink: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 });

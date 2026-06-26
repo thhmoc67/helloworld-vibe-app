@@ -1,5 +1,12 @@
 import { http } from '@/api/http';
-import type { SupportIssueCategory, SupportTicket, TicketConversation } from '@/types/ticket';
+import type {
+  CreateTicketParams,
+  CreateTicketResult,
+  SupportTicket,
+  TicketCategory,
+  TicketCategoryFaq,
+  TicketConversation,
+} from '@/types/ticket';
 
 export async function getSupportTickets(): Promise<{
   data: SupportTicket[] | null;
@@ -79,17 +86,79 @@ export async function reopenSupportTicket(
   }
 }
 
-export async function getKbIssues(): Promise<SupportIssueCategory[]> {
+export async function getKbCategories(): Promise<{
+  data: TicketCategory[];
+  message?: string;
+}> {
   try {
     const { data } = await http.get('api/hello/list/issues');
     const issues = data?.data ?? data;
-    return Array.isArray(issues) ? issues : [];
-  } catch {
-    return [];
+    if (!Array.isArray(issues)) {
+      return { data: [], message: data?.message };
+    }
+
+    const helloworldRoot = issues.find(
+      (item: { permalink?: string }) => item.permalink === 'thehelloworld',
+    );
+    const categories = Array.isArray(helloworldRoot?.child) ? helloworldRoot.child : [];
+
+    return { data: categories, message: data?.message };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch categories';
+    return { data: [], message };
   }
 }
 
-export async function postCreateTicket(payload: Record<string, unknown>) {
-  const { data } = await http.post('api/hello/ticket/create', payload);
-  return data;
+export async function getCategoryDescription(categoryId: string): Promise<{
+  data: TicketCategoryFaq[];
+  message?: string;
+}> {
+  try {
+    const { data } = await http.get('api/hello/list/issues/category', {
+      params: { categoryId },
+    });
+    const faqs = data?.data ?? data;
+    return {
+      data: Array.isArray(faqs) ? faqs : [],
+      message: data?.message,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch category help';
+    return { data: [], message };
+  }
+}
+
+export async function postCreateTicket(payload: CreateTicketParams): Promise<CreateTicketResult> {
+  try {
+    const { data } = await http.post('api/hello/ticket/create', {
+      category: payload.category,
+      subCategory: payload.subCategory,
+      subject: payload.subCategory,
+      description: payload.description,
+      classification: '',
+      email: payload.email,
+      propertyName: payload.propertyName,
+      city: payload.city,
+      bookingId: payload.bookingId,
+      propertyId: payload.propertyId,
+    });
+
+    const ticketNumber =
+      data?.data?.ticketNumber ??
+      data?.data?.ticket_number ??
+      data?.ticketNumber ??
+      data?.ticket_number ??
+      (data?.success !== false && typeof data?.message === 'string' && data.message.trim()
+        ? data.message.trim()
+        : undefined);
+
+    return {
+      success: data?.success !== false && Boolean(ticketNumber || data?.success),
+      ticketNumber: ticketNumber ? String(ticketNumber) : undefined,
+      message: data?.message ?? data?.error,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create ticket';
+    return { success: false, message };
+  }
 }

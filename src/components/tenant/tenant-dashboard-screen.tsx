@@ -1,6 +1,5 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -38,6 +37,7 @@ import palette from '@/constants/palette';
 import { TAB_SCREEN_EXTRA_PADDING } from '@/constants/tab-bar';
 import { Radius } from '@/constants/theme';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
+import { useRaiseSupportRequest } from '@/hooks/use-raise-support-request';
 import { useInvoicePayment } from '@/hooks/use-invoice-payment';
 import { useMoveInPayment } from '@/hooks/use-move-in-payment';
 import { useUpcomingEvents } from '@/queries/use-events';
@@ -45,7 +45,6 @@ import { useBookingStatus } from '@/queries/use-booking-status';
 import { useSupportTickets } from '@/queries/use-support-tickets';
 import { useTenantInvoices } from '@/queries/use-tenant-invoices';
 import { getPropertyManagerByBookingId } from '@/api/user';
-import { postCreateTicket } from '@/api/tickets';
 import { useTenantProfile } from '@/stores/tenant-store';
 import {
   getMoveInPendingAmount,
@@ -58,14 +57,14 @@ export function TenantDashboardScreen() {
   const tabBarInset = useTabBarInset();
   const { payInvoice } = useInvoicePayment();
   const { startMoveInPayment } = useMoveInPayment();
-  const queryClient = useQueryClient();
   const profile = useTenantProfile();
   const { data: bookingStatus } = useBookingStatus();
   const { data: invoices, isLoading: invoicesLoading, refetch: refetchInvoices } = useTenantInvoices();
   const { data: tickets, refetch: refetchTickets } = useSupportTickets();
   const { data: events, isLoading: eventsLoading, refetch: refetchEvents } = useUpcomingEvents();
+  const { sheetVisible, openRaiseRequest, closeRaiseRequest, submitRaiseRequest } =
+    useRaiseSupportRequest();
   const [refreshing, setRefreshing] = useState(false);
-  const [sheetVisible, setSheetVisible] = useState(false);
   const [pmName, setPmName] = useState(profile?.propertyInfo?.propertyManager?.name ?? '');
   const [pmPhone, setPmPhone] = useState(profile?.propertyInfo?.propertyManager?.mobile ?? '');
   const [pmPhoto, setPmPhoto] = useState<string | null>(null);
@@ -134,16 +133,6 @@ export function TenantDashboardScreen() {
       return;
     }
     router.push('/(tabs)/support');
-  }
-
-  async function handleCreateTicket(payload: { category: string; description: string }) {
-    await postCreateTicket({
-      subject: payload.category,
-      description: payload.description,
-      bookingId: profile?.bookingId,
-      propertyId: profile?.propertyInfo?.propertyId,
-    });
-    await queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
   }
 
   return (
@@ -216,7 +205,7 @@ export function TenantDashboardScreen() {
 
         <DashboardSupportPreview
           tickets={tickets ?? []}
-          onRaiseRequest={() => setSheetVisible(true)}
+          onRaiseRequest={openRaiseRequest}
         />
 
         <DashboardEventsSection events={events ?? []} isLoading={eventsLoading} />
@@ -235,8 +224,8 @@ export function TenantDashboardScreen() {
 
       <RaiseRequestSheet
         visible={sheetVisible}
-        onClose={() => setSheetVisible(false)}
-        onSubmit={handleCreateTicket}
+        onClose={closeRaiseRequest}
+        onSubmit={submitRaiseRequest}
       />
     </View>
   );

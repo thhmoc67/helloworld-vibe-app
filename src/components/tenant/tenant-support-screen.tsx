@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,8 +8,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RaiseRequestSheet } from '@/components/tenant/raise-request-sheet';
 import { HelpDeskCard } from '@/components/support/help-desk-card';
+import { RaiseRequestSheet } from '@/components/tenant/raise-request-sheet';
 import { SupportTicketCard } from '@/components/tenant/support-ticket-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -19,10 +18,9 @@ import { SwipeableTabPager } from '@/components/ui/swipeable-tab-pager';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { TAB_BAR_HEIGHT, TAB_SCREEN_EXTRA_PADDING } from '@/constants/tab-bar';
+import { useRaiseSupportRequest } from '@/hooks/use-raise-support-request';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { useSupportTickets } from '@/queries/use-support-tickets';
-import { postCreateTicket } from '@/api/tickets';
-import { useTenantProfile } from '@/stores/tenant-store';
 import { isActiveTicket } from '@/utils/tenant-format';
 
 type SupportTab = 'active' | 'resolved';
@@ -34,24 +32,13 @@ const FAB_GAP = 12;
 export function TenantSupportScreen() {
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarInset();
-  const profile = useTenantProfile();
-  const queryClient = useQueryClient();
   const { data: tickets, isLoading, refetch, isRefetching } = useSupportTickets();
+  const { sheetVisible, openRaiseRequest, closeRaiseRequest, submitRaiseRequest } =
+    useRaiseSupportRequest();
   const [tab, setTab] = useState<SupportTab>('active');
-  const [sheetVisible, setSheetVisible] = useState(false);
 
   const fabBottom = insets.bottom + TAB_BAR_HEIGHT + FAB_GAP;
   const scrollBottomPadding = tabBarInset + TAB_SCREEN_EXTRA_PADDING + FAB_HEIGHT + FAB_GAP;
-
-  async function handleCreateTicket(payload: { category: string; description: string }) {
-    await postCreateTicket({
-      subject: payload.category,
-      description: payload.description,
-      bookingId: profile?.bookingId,
-      propertyId: profile?.propertyInfo?.propertyId,
-    });
-    await queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
-  }
 
   function renderTabContent(tabId: SupportTab) {
     const filteredTickets = (tickets ?? []).filter((ticket) =>
@@ -111,13 +98,13 @@ export function TenantSupportScreen() {
       </SwipeableTabPager>
 
       <View style={[styles.fabWrap, { bottom: fabBottom }]}>
-        <Button label="Raise New Request" onPress={() => setSheetVisible(true)} style={styles.fab} />
+        <Button label="Raise New Request" onPress={openRaiseRequest} style={styles.fab} />
       </View>
 
       <RaiseRequestSheet
         visible={sheetVisible}
-        onClose={() => setSheetVisible(false)}
-        onSubmit={handleCreateTicket}
+        onClose={closeRaiseRequest}
+        onSubmit={submitRaiseRequest}
       />
     </View>
   );
