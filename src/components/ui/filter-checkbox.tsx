@@ -11,12 +11,12 @@ import Animated, {
 
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
-import { Radius } from '@/constants/theme';
 
 type FilterCheckboxProps = {
   label: string;
   checked: boolean;
   onChange: () => void;
+  labelSize?: 'xs' | 'sm';
 };
 
 function useCheckboxBounce(active: boolean) {
@@ -48,7 +48,7 @@ function useCheckboxBounce(active: boolean) {
   }));
 }
 
-export function FilterCheckbox({ label, checked, onChange }: FilterCheckboxProps) {
+export function FilterCheckbox({ label, checked, onChange, labelSize = 'sm' }: FilterCheckboxProps) {
   const boxAnimatedStyle = useCheckboxBounce(checked);
 
   return (
@@ -64,7 +64,12 @@ export function FilterCheckbox({ label, checked, onChange }: FilterCheckboxProps
           </Animated.View>
         ) : null}
       </Animated.View>
-      <Typography variant="text" size="sm" weight="medium" color={palette.gray[700]} style={styles.label}>
+      <Typography
+        variant="text"
+        size={labelSize}
+        weight="medium"
+        color={labelSize === 'xs' ? palette.gray[500] : palette.gray[700]}
+        style={styles.label}>
         {label}
       </Typography>
     </Pressable>
@@ -75,21 +80,23 @@ const styles = StyleSheet.create({
   root: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 4,
+    gap: 8,
+    paddingVertical: 8,
   },
   box: {
     width: 20,
     height: 20,
-    borderRadius: Radius.sm,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: palette.gray[300],
     backgroundColor: palette.white,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   boxChecked: {
-    borderColor: palette.gray[800],
+    borderColor: palette.gray[600],
+    backgroundColor: palette.gray[50],
   },
   label: {
     flex: 1,

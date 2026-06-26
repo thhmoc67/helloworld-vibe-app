@@ -185,6 +185,13 @@ function main() {
     copyFile(emptyStateSrc, path.join(emptyStateTarget, 'empty-state.png'));
     console.log(`[sync-hw-assets] Synced empty state assets to ${emptyStateTarget}`);
   }
+
+  const moveOutTarget = path.join(__dirname, '..', 'assets', 'bundled', 'move-out');
+  const moveOutIllustrationSrc = path.join(profileSource, 'Moveout Flow- App', 'Help me stay.png');
+  if (fs.existsSync(moveOutIllustrationSrc)) {
+    copyFile(moveOutIllustrationSrc, path.join(moveOutTarget, 'help-me-stay.png'));
+    console.log(`[sync-hw-assets] Synced move-out assets to ${moveOutTarget}`);
+  }
 }
 
 main();

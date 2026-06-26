@@ -51,6 +51,7 @@ export default function RootLayout() {
           options={{ animation: 'slide_from_right' }}
         />
         <Stack.Screen name="move-in-payment" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="move-out-checklist" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="menu" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="profile" options={{ animation: 'slide_from_right' }} />

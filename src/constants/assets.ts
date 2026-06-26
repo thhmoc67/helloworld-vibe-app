@@ -71,6 +71,10 @@ export const VisitorAssets = {
   noVisitors: require('../../assets/bundled/visitors/no-visitors-pagloo.png'),
 } as const;
 
+export const MoveOutAssets = {
+  helpMeStay: require('../../assets/bundled/move-out/help-me-stay.png'),
+} as const;
+
 export const EmptyStateAssets = {
   default: require('../../assets/bundled/empty-state/empty-state.png'),
 } as const;
