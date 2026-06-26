@@ -33,6 +33,11 @@ import {
     getOccupancyLabel,
 } from '@/utils/booking-rooms';
 import {
+  getDefaultMoveInDate,
+  parseBookingDate,
+  toBookingDateString,
+} from '@/utils/booking-payment';
+import {
     DEFAULT_VISIT_TIME_SLOTS,
     buildVisitDateOptions,
     formatVisitConfirmation,
@@ -278,16 +283,13 @@ function normalizeMobile(mobile?: string | null) {
 }
 
 function createDefaultOccupantDetails(mobile?: string | null): OccupantDetails {
-  const moveInDate = new Date();
-  moveInDate.setDate(moveInDate.getDate() + 14);
-
   return {
     firstName: '',
     lastName: '',
     email: '',
     phone: normalizeMobile(mobile),
     gender: 'Male',
-    moveInDate,
+    moveInDate: getDefaultMoveInDate(),
   };
 }
 
@@ -308,9 +310,12 @@ function occupancyFromDraft(draft: BookingDraft): OccupancyType {
 }
 
 function occupantFromDraft(draft: BookingDraft): OccupantDetails {
+  const moveInDate = parseBookingDate(draft.moveInDate) ?? getDefaultMoveInDate();
+  moveInDate.setHours(0, 0, 0, 0);
+
   return {
     ...draft.occupant,
-    moveInDate: new Date(draft.moveInDate),
+    moveInDate,
   };
 }
 
@@ -597,7 +602,7 @@ export function HdpVisitSheet({
       occupancyLabel: `${getOccupancyLabel(selectedOccupancy)} Room`,
       categoryId: selectedRoom.id,
       sharingType: selectedOccupancy === 'private' ? 'private' : 'sharing',
-      moveInDate: occupantDetails.moveInDate.toISOString(),
+      moveInDate: toBookingDateString(occupantDetails.moveInDate),
       occupant: occupantDetails,
       securityDepositMonths: minStayMonths,
     });

@@ -2,15 +2,16 @@ import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { CalendarPickerModal } from '@/components/ui/calendar-picker-modal';
 import { Button } from '@/components/ui/button';
+import { CalendarPickerModal } from '@/components/ui/calendar-picker-modal';
 import { TextField } from '@/components/ui/text-field';
 import { Typography } from '@/components/ui/typography';
 import type { OccupantDetails } from '@/types/booking';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+import { getDefaultMoveInDate, getLatestMoveInDate } from '@/utils/booking-payment';
 
-const GENDER_OPTIONS = ['Male', 'Female', 'Other'] as const;
+const GENDER_OPTIONS = ['Male', 'Female', 'Others'] as const;
 
 export type OccupantFormErrors = Partial<Record<keyof OccupantDetails, string>>;
 
@@ -148,11 +149,12 @@ export function HdpBookOccupantForm({
           <Pressable
             onPress={() => setCalendarOpen(true)}
             style={styles.selectField}
-            accessibilityRole="button">
-            <Typography variant="text" size="md" color={palette.gray[800]}>
+            accessibilityRole="button"
+            accessibilityLabel="Select move in date">
+            <Typography variant="text" size="md" color={palette.gray[800]} numberOfLines={1}>
               {formatMoveInDate(value.moveInDate)}
             </Typography>
-            <SymbolView name="calendar" size={14} tintColor={palette.gray[500]} />
+            <SymbolView name="calendar" size={14} tintColor={palette.gray[800]} />
           </Pressable>
         </View>
       </View>
@@ -168,6 +170,8 @@ export function HdpBookOccupantForm({
       <CalendarPickerModal
         visible={calendarOpen}
         value={value.moveInDate}
+        minDate={getDefaultMoveInDate()}
+        maxDate={getLatestMoveInDate()}
         onClose={() => setCalendarOpen(false)}
         onApply={(date) => updateField('moveInDate', date)}
       />
@@ -205,6 +209,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: palette.white,
+    gap: 8,
   },
   selectFieldError: {
     borderColor: palette.red[300],

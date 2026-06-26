@@ -12,6 +12,8 @@ const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sat', 'Su'] as const;
 type CalendarPickerModalProps = {
   visible: boolean;
   value: Date;
+  minDate?: Date;
+  maxDate?: Date;
   onClose: () => void;
   onApply: (date: Date) => void;
 };
@@ -55,7 +57,28 @@ function buildMonthGrid(year: number, month: number) {
   return cells;
 }
 
-export function CalendarPickerModal({ visible, value, onClose, onApply }: CalendarPickerModalProps) {
+function isBeforeDay(a: Date, b: Date) {
+  return startOfDay(a).getTime() < startOfDay(b).getTime();
+}
+
+function isAfterDay(a: Date, b: Date) {
+  return startOfDay(a).getTime() > startOfDay(b).getTime();
+}
+
+function isDateSelectable(date: Date, minDate?: Date, maxDate?: Date) {
+  if (minDate && isBeforeDay(date, minDate)) return false;
+  if (maxDate && isAfterDay(date, maxDate)) return false;
+  return true;
+}
+
+export function CalendarPickerModal({
+  visible,
+  value,
+  minDate,
+  maxDate,
+  onClose,
+  onApply,
+}: CalendarPickerModalProps) {
   const [visibleMonth, setVisibleMonth] = useState(() => new Date(value));
   const [draftDate, setDraftDate] = useState(value);
 
@@ -108,14 +131,19 @@ export function CalendarPickerModal({ visible, value, onClose, onApply }: Calend
             {cells.map(({ date, inMonth }) => {
               const selected = isSameDay(date, draftDate);
               const today = isSameDay(date, new Date());
+              const selectable = isDateSelectable(date, minDate, maxDate);
 
               return (
                 <Pressable
                   key={date.toISOString()}
-                  onPress={() => setDraftDate(startOfDay(date))}
-                  style={[styles.dayCell, selected && styles.dayCellSelected]}
+                  onPress={() => {
+                    if (!selectable) return;
+                    setDraftDate(startOfDay(date));
+                  }}
+                  disabled={!selectable}
+                  style={[styles.dayCell, selected && styles.dayCellSelected, !selectable && styles.dayCellDisabled]}
                   accessibilityRole="button"
-                  accessibilityState={{ selected }}>
+                  accessibilityState={{ selected, disabled: !selectable }}>
                   <Typography
                     variant="text"
                     size="sm"
@@ -123,13 +151,15 @@ export function CalendarPickerModal({ visible, value, onClose, onApply }: Calend
                     color={
                       selected
                         ? palette.white
-                        : inMonth
-                          ? palette.gray[800]
-                          : palette.gray[400]
+                        : !selectable
+                          ? palette.gray[300]
+                          : inMonth
+                            ? palette.gray[800]
+                            : palette.gray[400]
                     }>
                     {date.getDate()}
                   </Typography>
-                  {today && !selected ? <View style={styles.todayDot} /> : null}
+                  {today && !selected && selectable ? <View style={styles.todayDot} /> : null}
                 </Pressable>
               );
             })}
@@ -201,6 +231,9 @@ const styles = StyleSheet.create({
   },
   dayCellSelected: {
     backgroundColor: palette.gray[800],
+  },
+  dayCellDisabled: {
+    opacity: 0.45,
   },
   todayDot: {
     position: 'absolute',

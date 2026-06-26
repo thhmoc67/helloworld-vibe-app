@@ -4,7 +4,7 @@ import type {
   BookingChargeOption,
   BookingDraft,
 } from '@/types/booking-payment';
-import { buildInvoiceId, formatBookingApiDate } from '@/utils/booking-payment';
+import { buildInvoiceId, formatBookingApiDate, formatBookingInitDate } from '@/utils/booking-payment';
 import type { BookingPricingDetails } from '@/utils/booking-pricing';
 import { getSummaryLineAmount } from '@/utils/booking-pricing';
 
@@ -88,7 +88,7 @@ export function buildBookingPaymentPayload({
   return {
     bookingInfo: {
       propertyId: draft.propertyId,
-      moveInDate: formatBookingApiDate(draft.moveInDate),
+      moveInDate: formatBookingInitDate(draft.moveInDate),
       categoryId: draft.categoryId ?? draft.roomId,
       firstName: draft.occupant.firstName,
       lastName: draft.occupant.lastName,

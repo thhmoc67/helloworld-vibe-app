@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { postVerifyVisitor } from '@/api/roommate';
 import { ProfileStackScreen } from '@/components/profile/profile-stack-screen';
 import { AddMateSheet } from '@/components/tenant/mates/add-visitor-sheet';
 import { ToastBanner } from '@/components/tenant/mates/toast-banner';
@@ -20,7 +21,6 @@ import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 import { useRoomMates } from '@/queries/use-roommates';
-import { postVerifyVisitor } from '@/api/roommate';
 import { useTenantProfile } from '@/stores/tenant-store';
 import type { RoomMate } from '@/types/roommate';
 
