@@ -1,5 +1,15 @@
 import { SymbolView } from 'expo-symbols';
+import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  ZoomIn,
+} from 'react-native-reanimated';
 
 import { Button } from '@/components/ui/button';
 import { Typography } from '@/components/ui/typography';
@@ -7,6 +17,11 @@ import type { BookRoomOption, OccupancyType } from '@/types/booking';
 import { formatBookingPrice, getOccupancyLabel } from '@/utils/booking-rooms';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+
+const ITEM_ENTER_MS = 220;
+const ITEM_STAGGER_MS = 40;
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type HdpBookRoomSelectionProps = {
   occupancyOptions: OccupancyType[];
@@ -19,6 +34,65 @@ type HdpBookRoomSelectionProps = {
   onBookNow: () => void;
 };
 
+function useSelectionBounce(selected: boolean) {
+  const scale = useSharedValue(1);
+  const didMountRef = useRef(false);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    if (!selected) {
+      return;
+    }
+
+    scale.value = withSequence(
+      withSpring(1.06, { damping: 11, stiffness: 380, mass: 0.6 }),
+      withSpring(1, { damping: 14, stiffness: 280, mass: 0.7 }),
+    );
+  }, [scale, selected]);
+
+  return useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+}
+
+function OccupancyChip({
+  option,
+  index,
+  active,
+  onChange,
+}: {
+  option: OccupancyType;
+  index: number;
+  active: boolean;
+  onChange: (value: OccupancyType) => void;
+}) {
+  const animatedStyle = useSelectionBounce(active);
+
+  return (
+    <Animated.View
+      entering={FadeInDown.duration(ITEM_ENTER_MS).delay(index * ITEM_STAGGER_MS)}
+      style={animatedStyle}>
+      <Pressable
+        onPress={() => onChange(option)}
+        style={[styles.chip, active && styles.chipActive]}
+        accessibilityRole="button"
+        accessibilityState={{ selected: active }}>
+        <Typography
+          variant="text"
+          size="sm"
+          weight="medium"
+          color={active ? palette.white : palette.gray[700]}>
+          {getOccupancyLabel(option)}
+        </Typography>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 function OccupancyChips({
   options,
   selected,
@@ -30,26 +104,15 @@ function OccupancyChips({
 }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-      {options.map((option) => {
-        const active = option === selected;
-
-        return (
-          <Pressable
-            key={option}
-            onPress={() => onChange(option)}
-            style={[styles.chip, active && styles.chipActive]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}>
-            <Typography
-              variant="text"
-              size="sm"
-              weight="medium"
-              color={active ? palette.white : palette.gray[700]}>
-              {getOccupancyLabel(option)}
-            </Typography>
-          </Pressable>
-        );
-      })}
+      {options.map((option, index) => (
+        <OccupancyChip
+          key={option}
+          option={option}
+          index={index}
+          active={option === selected}
+          onChange={onChange}
+        />
+      ))}
     </ScrollView>
   );
 }
@@ -58,21 +121,30 @@ function RoomTypeRow({
   room,
   selected,
   onSelect,
+  index,
 }: {
   room: BookRoomOption;
   selected: boolean;
   onSelect: () => void;
+  index: number;
 }) {
+  const animatedStyle = useSelectionBounce(selected);
+
   return (
-    <Pressable
+    <AnimatedPressable
+      entering={FadeInDown.duration(ITEM_ENTER_MS).delay(index * ITEM_STAGGER_MS)}
       onPress={onSelect}
-      style={[styles.roomRow, selected && styles.roomRowSelected]}
+      style={[styles.roomRow, selected && styles.roomRowSelected, animatedStyle]}
       accessibilityRole="radio"
       accessibilityState={{ selected }}>
       <View style={styles.roomHeader}>
         <View style={styles.roomTitleRow}>
           <View style={[styles.radio, selected && styles.radioSelected]}>
-            {selected ? <View style={styles.radioDot} /> : null}
+            {selected ? (
+              <Animated.View entering={ZoomIn.duration(180).springify()}>
+                <View style={styles.radioDot} />
+              </Animated.View>
+            ) : null}
           </View>
           <Typography variant="text" size="md" weight="bold">
             {room.name}
@@ -84,9 +156,9 @@ function RoomTypeRow({
       </View>
 
       <View style={styles.featureRow}>
-        {room.features.map((feature, index) => (
+        {room.features.map((feature, featureIndex) => (
           <View key={feature} style={styles.featureItem}>
-            {index > 0 ? (
+            {featureIndex > 0 ? (
               <Typography variant="text" size="xs" color={palette.gray[400]}>
                 ·
               </Typography>
@@ -98,7 +170,7 @@ function RoomTypeRow({
           </View>
         ))}
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -124,16 +196,17 @@ export function HdpBookRoomSelection({
         onChange={onOccupancyChange}
       />
 
-      <View style={styles.roomList}>
-        {rooms.map((room) => (
+      <Animated.View key={selectedOccupancy} entering={FadeIn.duration(200)} style={styles.roomList}>
+        {rooms.map((room, index) => (
           <RoomTypeRow
             key={room.id}
             room={room}
+            index={index}
             selected={room.id === selectedRoomId}
             onSelect={() => onRoomSelect(room.id)}
           />
         ))}
-      </View>
+      </Animated.View>
 
       <Button label="Book Now" onPress={onBookNow} style={styles.cta} />
 

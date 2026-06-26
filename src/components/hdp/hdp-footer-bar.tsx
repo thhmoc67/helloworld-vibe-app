@@ -1,4 +1,11 @@
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
@@ -10,17 +17,36 @@ type HdpFooterBarProps = {
   onBookNow?: () => void;
 };
 
+const FOOTER_HIDE_OFFSET = 120;
+const ANIMATION_MS = 520;
+
 export function HdpFooterBar({
   visible = true,
   onScheduleVisit,
   onBookNow,
 }: HdpFooterBarProps) {
   const insets = useSafeAreaInsets();
+  const translateY = useSharedValue(FOOTER_HIDE_OFFSET);
 
-  if (!visible) return null;
+  useEffect(() => {
+    translateY.value = withTiming(visible ? 0 : FOOTER_HIDE_OFFSET, {
+      duration: ANIMATION_MS,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [translateY, visible]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+    <Animated.View
+      pointerEvents={visible ? 'auto' : 'none'}
+      style={[
+        styles.wrap,
+        { paddingBottom: Math.max(insets.bottom, 16) },
+        animatedStyle,
+      ]}>
       <View style={styles.row}>
         <Button
           label="Schedule Visit"
@@ -30,7 +56,7 @@ export function HdpFooterBar({
         />
         <Button label="Book Now" onPress={onBookNow} style={styles.button} />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

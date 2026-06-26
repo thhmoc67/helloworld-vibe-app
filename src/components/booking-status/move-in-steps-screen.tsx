@@ -1,4 +1,3 @@
-import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import {
@@ -16,24 +15,24 @@ import { MoveInProgressCard } from '@/components/booking-status/move-in-progress
 import { MoveInStepsHeader } from '@/components/booking-status/move-in-steps-header';
 import { DashboardMoveInPendingPaymentCard } from '@/components/tenant/dashboard/dashboard-move-in-pending-payment-card';
 import { Typography } from '@/components/ui/typography';
-import { getKycLink } from '@/api/user';
 import palette from '@/constants/palette';
-import { useInvoicePayment } from '@/hooks/use-invoice-payment';
+import { useMoveInPayment } from '@/hooks/use-move-in-payment';
 import { useBookingStatus } from '@/queries/use-booking-status';
 import { useTenantInvoices } from '@/queries/use-tenant-invoices';
-import { useTenantProfile } from '@/stores/tenant-store';
+import { useTenantProfile, useTenantStore } from '@/stores/tenant-store';
 import type { MoveInStep } from '@/types/booking-status';
 import { buildMoveInSteps, partitionMoveInSteps } from '@/utils/move-in-steps';
 import {
   getMoveInPendingAmount,
   shouldShowMoveInPendingPaymentCard,
 } from '@/utils/move-in-payment';
+import { resetRootRoute } from '@/utils/navigation-reset';
 
 export function MoveInStepsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const profile = useTenantProfile();
-  const { payInvoice } = useInvoicePayment();
+  const { startMoveInPayment } = useMoveInPayment();
   const { data: invoices } = useTenantInvoices();
   const { data: status, isLoading, isError, refetch, isRefetching } = useBookingStatus();
 
@@ -43,7 +42,9 @@ export function MoveInStepsScreen() {
     }, [refetch]),
   );
 
-  const steps = status ? buildMoveInSteps(status, profile) : [];
+  const moveInInterests = useTenantStore((state) => state.moveInInterests);
+  const moveInBackground = useTenantStore((state) => state.moveInBackground);
+  const steps = status ? buildMoveInSteps(status, profile, moveInInterests, moveInBackground) : [];
   const { completed, pending, total, doneCount } = partitionMoveInSteps(steps);
   const moveInDate = status?.move_in_date ?? profile?.propertyInfo?.moveInDate ?? '';
   const nextPending = invoices?.pending?.[0];
@@ -54,32 +55,14 @@ export function MoveInStepsScreen() {
     : pending;
 
   function handleMoveInPayment() {
-    if (nextPending) {
-      payInvoice(nextPending);
-      return;
-    }
-    router.push('/(tabs)/payments');
+    startMoveInPayment();
   }
 
   const handleBack = useCallback(() => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/(tabs)/dashboard');
-    }
-  }, [router]);
+    resetRootRoute('/(tabs)/dashboard');
+  }, []);
 
-  async function handleStepPress(step: MoveInStep) {
-    if (step.id === 'document-verification') {
-      if (!profile?.bookingId) return;
-      const response = await getKycLink(profile.bookingId);
-      const url = response?.data?.url ?? response?.url;
-      if (url) {
-        await WebBrowser.openBrowserAsync(url);
-      }
-      return;
-    }
-
+  function handleStepPress(step: MoveInStep) {
     if (step.route) {
       router.push(step.route as never);
     }
@@ -130,11 +113,7 @@ export function MoveInStepsScreen() {
                 <MoveInPendingCard
                   key={step.id}
                   step={step}
-                  onPress={
-                    step.actionLabel || step.id === 'document-verification'
-                      ? () => handleStepPress(step)
-                      : undefined
-                  }
+                  onPress={step.actionLabel ? () => handleStepPress(step) : undefined}
                 />
               ))}
             </View>

@@ -1,5 +1,13 @@
 import { SymbolView } from 'expo-symbols';
+import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  ZoomIn,
+} from 'react-native-reanimated';
 
 import { Typography } from '@/components/ui/typography';
 import { formatBookingAmount } from '@/utils/booking-payment';
@@ -17,6 +25,35 @@ type BookingPaymentOptionProps = {
   onPress?: () => void;
 };
 
+function useCheckboxBounce(active: boolean) {
+  const scale = useSharedValue(1);
+  const didMountRef = useRef(false);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    scale.value = withSequence(
+      withSpring(active ? 1.12 : 0.92, {
+        damping: 11,
+        stiffness: 400,
+        mass: 0.55,
+      }),
+      withSpring(1, {
+        damping: 14,
+        stiffness: 280,
+        mass: 0.7,
+      }),
+    );
+  }, [active, scale]);
+
+  return useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+}
+
 export function BookingPaymentOption({
   label,
   amount,
@@ -27,6 +64,8 @@ export function BookingPaymentOption({
   disabled,
   onPress,
 }: BookingPaymentOptionProps) {
+  const indicatorAnimatedStyle = useCheckboxBounce(selected);
+
   return (
     <Pressable
       onPress={disabled ? undefined : onPress}
@@ -38,11 +77,13 @@ export function BookingPaymentOption({
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected, disabled }}>
       <View style={styles.row}>
-        <View style={[styles.radio, selected && styles.radioSelected]}>
+        <Animated.View style={[styles.radio, selected && styles.radioSelected, indicatorAnimatedStyle]}>
           {selected ? (
-            <SymbolView name="checkmark" size={12} weight="bold" tintColor={palette.white} />
+            <Animated.View entering={ZoomIn.duration(160).springify()}>
+              <SymbolView name="checkmark" size={12} weight="bold" tintColor={palette.white} />
+            </Animated.View>
           ) : null}
-        </View>
+        </Animated.View>
 
         <View style={styles.copy}>
           <View style={styles.titleRow}>

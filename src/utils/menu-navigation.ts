@@ -3,8 +3,8 @@ import type { Href } from 'expo-router';
 /** In-app routes opened from the profile menu for prospects (pre-tenant). */
 export const PROSPECT_MENU_ROUTES: Partial<Record<string, Href>> = {
   'contact-us': '/(tabs)/contact',
-  'my-visits': '/(tabs)/my-visits',
-  'my-wishlist': '/(tabs)/wishlist',
+  'my-visits': '/my-visits',
+  'my-wishlist': '/my-wishlist',
   'community-events': '/community-events',
 };
 
@@ -13,8 +13,8 @@ export const TENANT_MENU_ROUTES: Partial<Record<string, Href>> = {
   'move-in-steps': '/move-in-steps',
   'my-payments': '/(tabs)/payments',
   support: '/(tabs)/support',
-  'my-visits': '/(tabs)/my-visits',
-  'my-wishlist': '/(tabs)/wishlist',
+  'my-visits': '/my-visits',
+  'my-wishlist': '/my-wishlist',
   'community-events': '/community-events',
   'personal-details': '/profile/personal-details',
   'booking-details': '/profile/booking-details',

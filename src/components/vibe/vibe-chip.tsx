@@ -1,5 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  ZoomIn,
+} from 'react-native-reanimated';
 import { SymbolView } from 'expo-symbols';
 
 import { fontStyleForWeight } from '@/constants/fonts';
@@ -32,8 +40,34 @@ export function VibeChip({
   onPress,
   variant = 'onDark',
 }: VibeChipProps) {
+  const scale = useSharedValue(1);
+  const didMountRef = useRef(false);
   const labelColor =
     selected || variant === 'onLight' ? palette.gray[800] : palette.gray[200];
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    scale.value = withSequence(
+      withSpring(selected ? 1.07 : 0.95, {
+        damping: 11,
+        stiffness: 380,
+        mass: 0.6,
+      }),
+      withSpring(1, {
+        damping: 14,
+        stiffness: 280,
+        mass: 0.7,
+      }),
+    );
+  }, [scale, selected]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const content = (
     <View
@@ -43,42 +77,46 @@ export function VibeChip({
       ]}>
       <Text style={styles.emoji}>{emoji}</Text>
       <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
-      {selected ? <CheckBadge /> : null}
+      {selected ? (
+        <Animated.View entering={ZoomIn.duration(180).springify()}>
+          <CheckBadge />
+        </Animated.View>
+      ) : null}
     </View>
   );
 
-  if (selected) {
-    return (
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityState={{ selected: true }}
-        accessibilityLabel={`${label}, selected`}
-        style={({ pressed }) => pressed && styles.pressed}>
-        <LinearGradient
-          colors={[...VIBE_CHIP_GRADIENT]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={styles.gradientBorder}>
-          {content}
-        </LinearGradient>
-      </Pressable>
-    );
-  }
-
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: false }}
-      accessibilityLabel={label}
-      style={({ pressed }) => [
-        styles.chip,
-        variant === 'onDark' ? styles.chipDark : styles.chipLight,
-        pressed && styles.pressed,
-      ]}>
-      {content}
-    </Pressable>
+    <Animated.View style={animatedStyle}>
+      {selected ? (
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityState={{ selected: true }}
+          accessibilityLabel={`${label}, selected`}
+          style={({ pressed }) => pressed && styles.pressed}>
+          <LinearGradient
+            colors={[...VIBE_CHIP_GRADIENT]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.gradientBorder}>
+            {content}
+          </LinearGradient>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityState={{ selected: false }}
+          accessibilityLabel={label}
+          style={({ pressed }) => [
+            styles.chip,
+            variant === 'onDark' ? styles.chipDark : styles.chipLight,
+            pressed && styles.pressed,
+          ]}>
+          {content}
+        </Pressable>
+      )}
+    </Animated.View>
   );
 }
 

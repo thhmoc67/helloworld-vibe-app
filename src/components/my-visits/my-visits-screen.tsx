@@ -8,10 +8,12 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RateVisitSheet } from '@/components/my-visits/rate-visit-sheet';
 import { RescheduleVisitSheet } from '@/components/my-visits/reschedule-visit-sheet';
 import { VisitCard } from '@/components/my-visits/visit-card';
+import { ProfileStackScreen } from '@/components/profile/profile-stack-screen';
 import { TenantScreenHeader } from '@/components/tenant/tenant-screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SegmentedTabToggle } from '@/components/ui/segmented-tab-toggle';
@@ -47,9 +49,14 @@ function VisitsEmptyState({ tab, onExplore }: { tab: VisitTab; onExplore: () => 
   );
 }
 
-export function MyVisitsScreen() {
+type MyVisitsScreenProps = {
+  variant?: 'tab' | 'stack';
+};
+
+export function MyVisitsScreen({ variant = 'tab' }: MyVisitsScreenProps) {
   const router = useRouter();
   const tabBarInset = useTabBarInset();
+  const insets = useSafeAreaInsets();
   const { data, isLoading, refetch, isRefetching } = useVisits();
   const [tab, setTab] = useState<VisitTab>('upcoming');
   const [rescheduleVisit, setRescheduleVisit] = useState<PropertyVisit | null>(null);
@@ -70,12 +77,15 @@ export function MyVisitsScreen() {
     });
   }
 
-  return (
-    <View style={styles.root}>
-      <TenantScreenHeader title="My Visits" />
+  const bottomPadding =
+    variant === 'tab'
+      ? tabBarInset + TAB_SCREEN_EXTRA_PADDING
+      : Math.max(insets.bottom, 16);
 
+  const content = (
+    <>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: tabBarInset + TAB_SCREEN_EXTRA_PADDING }]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPadding }]}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
         showsVerticalScrollIndicator={false}>
         <SegmentedTabToggle
@@ -128,6 +138,21 @@ export function MyVisitsScreen() {
         onClose={() => setRatingVisit(null)}
         onSubmitted={() => void refetch()}
       />
+    </>
+  );
+
+  if (variant === 'stack') {
+    return (
+      <ProfileStackScreen title="My Visits" centerTitle style={styles.stackBody}>
+        {content}
+      </ProfileStackScreen>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <TenantScreenHeader title="My Visits" />
+      {content}
     </View>
   );
 }
@@ -136,6 +161,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: palette.white,
+  },
+  stackBody: {
+    paddingHorizontal: 0,
   },
   scroll: {
     paddingHorizontal: 24,

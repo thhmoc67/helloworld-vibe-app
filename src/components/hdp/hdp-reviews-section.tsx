@@ -13,6 +13,9 @@ import {
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 
+const REVIEW_CARD_GAP = 12;
+const REVIEW_CAROUSEL_HEIGHT = 148;
+
 type CategoryRating = {
   label: string;
   score: number;
@@ -76,7 +79,7 @@ function RecommendRing({ percent, size = 72 }: { percent: number; size?: number 
 }
 
 function CategoryRatingRow({ label, score }: CategoryRating) {
-  const fillPercent = `${Math.min(Math.max(score / 5, 0), 1) * 100}%`;
+  const fillRatio = Math.min(Math.max(score / 5, 0), 1);
 
   return (
     <View style={styles.categoryRow}>
@@ -88,8 +91,9 @@ function CategoryRatingRow({ label, score }: CategoryRating) {
           colors={[palette.lime[400], palette.lime[600]]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
-          style={[styles.barFill, { width: fillPercent }]}
+          style={[styles.barFill, { flex: fillRatio }]}
         />
+        <View style={[styles.barSpacer, { flex: 1 - fillRatio }]} />
       </View>
       <Typography variant="text" size="sm" weight="bold" color={palette.gray[900]} style={styles.categoryScore}>
         {score.toFixed(1)}
@@ -112,9 +116,9 @@ function ReviewAvatar({ name, avatarUri }: { name: string; avatarUri?: string })
   );
 }
 
-function ReviewCard({ review }: { review: HdpReview }) {
+function ReviewCard({ review, width }: { review: HdpReview; width: number }) {
   return (
-    <View style={styles.reviewCard}>
+    <View style={[styles.reviewCard, { width }]}>
       <View style={styles.reviewHeader}>
         <ReviewAvatar name={review.name} avatarUri={review.avatarUri} />
         <Typography variant="text" size="sm" weight="bold" color={palette.gray[900]} style={styles.reviewName}>
@@ -126,7 +130,7 @@ function ReviewCard({ review }: { review: HdpReview }) {
           </Typography>
         </View>
       </View>
-      <Typography variant="text" size="sm" color={palette.gray[600]} style={styles.reviewText}>
+      <Typography variant="text" size="sm" color={palette.gray[600]} style={styles.reviewText} numberOfLines={4}>
         {review.text}
       </Typography>
     </View>
@@ -141,8 +145,8 @@ export function HdpReviewsSection({
   reviews = HDP_DUMMY_REVIEWS,
   carouselWidth,
 }: HdpReviewsSectionProps) {
-  const reviewCardWidth = carouselWidth - 28;
-  const carouselItemWidth = reviewCardWidth + 12;
+  const reviewCardWidth = carouselWidth - REVIEW_CARD_GAP;
+  const slideWidth = carouselWidth;
 
   return (
     <View style={styles.section}>
@@ -199,13 +203,13 @@ export function HdpReviewsSection({
 
       <HwCarousel
         data={reviews}
-        width={carouselItemWidth}
-        height={188}
+        width={slideWidth}
+        height={REVIEW_CAROUSEL_HEIGHT}
         showPagination
         style={styles.carousel}
         renderItem={({ item }) => (
-          <View style={[styles.reviewSlide, { width: reviewCardWidth }]}>
-            <ReviewCard review={item} />
+          <View style={[styles.reviewSlide, { width: slideWidth }]}>
+            <ReviewCard review={item} width={reviewCardWidth} />
           </View>
         )}
       />
@@ -273,7 +277,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ringLabel: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -294,10 +298,14 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     backgroundColor: palette.gray[200],
     overflow: 'hidden',
+    flexDirection: 'row',
   },
   barFill: {
     height: '100%',
     borderRadius: Radius.full,
+  },
+  barSpacer: {
+    height: '100%',
   },
   categoryScore: {
     width: 30,
@@ -307,16 +315,18 @@ const styles = StyleSheet.create({
     marginHorizontal: -4,
   },
   reviewSlide: {
-    paddingRight: 12,
+    height: REVIEW_CAROUSEL_HEIGHT,
+    paddingRight: REVIEW_CARD_GAP,
+    justifyContent: 'flex-start',
   },
   reviewCard: {
-    flex: 1,
     backgroundColor: palette.white,
     borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: palette.gray[200],
     padding: 14,
     gap: 12,
+    minHeight: REVIEW_CAROUSEL_HEIGHT,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -341,6 +351,8 @@ const styles = StyleSheet.create({
   },
   reviewRatingBadge: {
     backgroundColor: palette.blue[50],
+    borderWidth: 1,
+    borderColor: palette.blue[200],
     borderRadius: Radius.full,
     paddingHorizontal: 8,
     paddingVertical: 4,

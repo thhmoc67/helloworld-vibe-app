@@ -38,13 +38,26 @@ export default function RootLayout() {
         <Stack.Screen name="srp" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="hdp" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="booking" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="booking-success" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen
+          name="booking-success"
+          options={{ animation: 'slide_from_right', gestureEnabled: false }}
+        />
         <Stack.Screen name="move-in-steps" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="move-in-background" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="move-in-about-you" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="move-in-checklist" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen
+          name="move-in-document-verification"
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen name="move-in-payment" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="menu" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="profile" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="roommates" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="visitors" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="my-visits" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="my-wishlist" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="sos" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="complete-payment" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="ticket-details" options={{ animation: 'slide_from_right' }} />

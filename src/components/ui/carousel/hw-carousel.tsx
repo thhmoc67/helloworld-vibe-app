@@ -1,4 +1,4 @@
-import { useCallback, useRef, type ReactNode } from 'react';
+import { useCallback, useRef, type ReactNode, type RefObject } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Carousel, { type ICarouselInstance } from 'react-native-reanimated-carousel';
 import { useSharedValue, type SharedValue } from 'react-native-reanimated';
@@ -24,6 +24,7 @@ export type HwCarouselProps<T> = {
   style?: StyleProp<ViewStyle>;
   onSnapToItem?: (index: number) => void;
   enabled?: boolean;
+  carouselRef?: RefObject<ICarouselInstance | null>;
 };
 
 export function HwCarousel<T extends object>({
@@ -38,18 +39,20 @@ export function HwCarousel<T extends object>({
   style,
   onSnapToItem,
   enabled = true,
+  carouselRef,
 }: HwCarouselProps<T>) {
-  const carouselRef = useRef<ICarouselInstance>(null);
+  const internalRef = useRef<ICarouselInstance>(null);
+  const resolvedRef = carouselRef ?? internalRef;
   const progress = useSharedValue(0);
 
   const handlePaginationPress = useCallback((index: number) => {
-    carouselRef.current?.scrollTo({ index, animated: true });
-  }, []);
+    resolvedRef.current?.scrollTo({ index, animated: true });
+  }, [resolvedRef]);
 
   return (
     <View style={style}>
       <Carousel
-        ref={carouselRef}
+        ref={resolvedRef}
         width={width}
         height={height}
         data={data}

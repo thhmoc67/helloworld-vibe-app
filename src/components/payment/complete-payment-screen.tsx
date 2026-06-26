@@ -6,8 +6,11 @@ import { PaymentSuccessView } from '@/components/payment/payment-success-view';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { useBookingDraftStore } from '@/stores/booking-draft-store';
+import { useTenantProfile } from '@/stores/tenant-store';
 import { buildBookingPaymentPayload, buildBookingVerifyPayload } from '@/utils/booking-checkout';
 import { buildInvoiceId } from '@/utils/booking-payment';
+import { resetRootRoute } from '@/utils/navigation-reset';
+import { getPaymentLogoImage } from '@/utils/payment-logo';
 import {
   CFEnvironment,
   CFPaymentGatewayService,
@@ -73,6 +76,7 @@ export function CompletePaymentScreen() {
   const setPaymentResult = useBookingDraftStore((state) => state.setPaymentResult);
   const pendingCheckout = useBookingDraftStore((state) => state.pendingCheckout);
   const setPendingCheckout = useBookingDraftStore((state) => state.setPendingCheckout);
+  const profile = useTenantProfile();
   const [status, setStatus] = useState<PaymentStatus>('loading');
   const [errorMessage, setErrorMessage] = useState('');
   const initDataRef = useRef<InitPaymentData | null>(null);
@@ -108,9 +112,9 @@ export function CompletePaymentScreen() {
         paymentDate: new Date().toISOString(),
       });
       setPendingCheckout(null);
-      router.replace('/booking-success');
+      resetRootRoute('/booking-success');
     },
-    [amount, moveInDate, router, setPaymentResult, setPendingCheckout],
+    [amount, moveInDate, setPaymentResult, setPendingCheckout],
   );
 
   const handlePaymentSuccess = useCallback(
@@ -159,6 +163,20 @@ export function CompletePaymentScreen() {
       return buildBookingVerifyPayload(initData, razorpayData, initData.amount ?? amount);
     }
 
+    if (paymentType === 'movein') {
+      const bookingId =
+        (params.bookingId as string) || profile?.bookingId || (params.paymentFor as string) || '';
+
+      return {
+        bookingId,
+        transactionId: initData.paymentObj.transactionId,
+        amount,
+        paymentMethod: 'UPI',
+        razorpayPaymentId: razorpayData.razorpay_payment_id,
+        razorpaySignature: razorpayData.razorpay_signature,
+      };
+    }
+
     return {
       ...paymentPayload,
       transactionId: initData.paymentObj.transactionId,
@@ -189,7 +207,7 @@ export function CompletePaymentScreen() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [amount, handlePaymentSuccess, paymentPayload, paymentType, verifyApi],
+    [amount, handlePaymentSuccess, params.bookingId, params.paymentFor, paymentPayload, paymentType, profile?.bookingId, verifyApi],
   );
 
   useEffect(() => {
@@ -218,6 +236,10 @@ export function CompletePaymentScreen() {
     }
   }
 
+  useEffect(() => {
+    void getPaymentLogoImage();
+  }, []);
+
   async function startRazorpayCheckout(initData: InitPaymentData) {
     if (!RazorpayCheckout) {
       setStatus('failed');
@@ -226,9 +248,10 @@ export function CompletePaymentScreen() {
     }
 
     try {
+      const paymentLogo = await getPaymentLogoImage();
       const options = {
         description,
-        image: 'https://hello-assets-items.s3.ap-south-1.amazonaws.com/icons/logo-icon.png',
+        image: paymentLogo,
         currency: 'INR',
         key: initData.paymentObj.razaorpayKey ?? '',
         amount: Math.round((initData.amount ?? amount) * 100),
@@ -344,7 +367,12 @@ export function CompletePaymentScreen() {
     return <PaymentErrorView message={errorMessage} onRetry={initPayment} />;
   }
 
-  return <PaymentSuccessView isInvoicePayment={paymentType === 'invoice'} />;
+  return (
+    <PaymentSuccessView
+      isInvoicePayment={paymentType === 'invoice'}
+      isMoveInPayment={paymentType === 'movein'}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

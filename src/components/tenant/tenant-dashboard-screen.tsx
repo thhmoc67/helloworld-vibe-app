@@ -39,6 +39,7 @@ import { TAB_SCREEN_EXTRA_PADDING } from '@/constants/tab-bar';
 import { Radius } from '@/constants/theme';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { useInvoicePayment } from '@/hooks/use-invoice-payment';
+import { useMoveInPayment } from '@/hooks/use-move-in-payment';
 import { useUpcomingEvents } from '@/queries/use-events';
 import { useBookingStatus } from '@/queries/use-booking-status';
 import { useSupportTickets } from '@/queries/use-support-tickets';
@@ -56,6 +57,7 @@ export function TenantDashboardScreen() {
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarInset();
   const { payInvoice } = useInvoicePayment();
+  const { startMoveInPayment } = useMoveInPayment();
   const queryClient = useQueryClient();
   const profile = useTenantProfile();
   const { data: bookingStatus } = useBookingStatus();
@@ -103,6 +105,10 @@ export function TenantDashboardScreen() {
   }
 
   function handlePayNow() {
+    if (showMoveInPendingPayment) {
+      startMoveInPayment();
+      return;
+    }
     if (nextPending) {
       payInvoice(nextPending);
       return;

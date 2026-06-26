@@ -1,5 +1,13 @@
-import { Pressable, StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
+import { useEffect, useRef } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  ZoomIn,
+} from 'react-native-reanimated';
 
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
@@ -11,18 +19,51 @@ type FilterCheckboxProps = {
   onChange: () => void;
 };
 
+function useCheckboxBounce(active: boolean) {
+  const scale = useSharedValue(1);
+  const didMountRef = useRef(false);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    scale.value = withSequence(
+      withSpring(active ? 1.14 : 0.9, {
+        damping: 11,
+        stiffness: 400,
+        mass: 0.55,
+      }),
+      withSpring(1, {
+        damping: 14,
+        stiffness: 280,
+        mass: 0.7,
+      }),
+    );
+  }, [active, scale]);
+
+  return useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+}
+
 export function FilterCheckbox({ label, checked, onChange }: FilterCheckboxProps) {
+  const boxAnimatedStyle = useCheckboxBounce(checked);
+
   return (
     <Pressable
       onPress={onChange}
       style={styles.root}
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}>
-      <View style={[styles.box, checked && styles.boxChecked]}>
+      <Animated.View style={[styles.box, checked && styles.boxChecked, boxAnimatedStyle]}>
         {checked ? (
-          <SymbolView name="checkmark" size={12} weight="bold" tintColor={palette.gray[800]} />
+          <Animated.View entering={ZoomIn.duration(160).springify()}>
+            <SymbolView name="checkmark" size={12} weight="bold" tintColor={palette.gray[800]} />
+          </Animated.View>
         ) : null}
-      </View>
+      </Animated.View>
       <Typography variant="text" size="sm" weight="medium" color={palette.gray[700]} style={styles.label}>
         {label}
       </Typography>

@@ -8,6 +8,7 @@ import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sat', 'Su'] as const;
+const DAY_MARKER_SIZE = 36;
 
 type CalendarPickerModalProps = {
   visible: boolean;
@@ -93,6 +94,14 @@ export function CalendarPickerModal({
     [visibleMonth],
   );
 
+  const weeks = useMemo(() => {
+    const rows: (typeof cells)[] = [];
+    for (let index = 0; index < cells.length; index += 7) {
+      rows.push(cells.slice(index, index + 7));
+    }
+    return rows;
+  }, [cells]);
+
   const monthLabel = visibleMonth.toLocaleDateString('en-IN', {
     month: 'long',
     year: 'numeric',
@@ -128,41 +137,46 @@ export function CalendarPickerModal({
           </View>
 
           <View style={styles.grid}>
-            {cells.map(({ date, inMonth }) => {
-              const selected = isSameDay(date, draftDate);
-              const today = isSameDay(date, new Date());
-              const selectable = isDateSelectable(date, minDate, maxDate);
+            {weeks.map((week, weekIndex) => (
+              <View key={`week-${weekIndex}`} style={styles.weekRow}>
+                {week.map(({ date, inMonth }) => {
+                  const selected = isSameDay(date, draftDate);
+                  const today = isSameDay(date, new Date());
+                  const selectable = isDateSelectable(date, minDate, maxDate);
 
-              return (
-                <Pressable
-                  key={date.toISOString()}
-                  onPress={() => {
-                    if (!selectable) return;
-                    setDraftDate(startOfDay(date));
-                  }}
-                  disabled={!selectable}
-                  style={[styles.dayCell, selected && styles.dayCellSelected, !selectable && styles.dayCellDisabled]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected, disabled: !selectable }}>
-                  <Typography
-                    variant="text"
-                    size="sm"
-                    weight={selected ? 'bold' : 'medium'}
-                    color={
-                      selected
-                        ? palette.white
-                        : !selectable
-                          ? palette.gray[300]
-                          : inMonth
-                            ? palette.gray[800]
-                            : palette.gray[400]
-                    }>
-                    {date.getDate()}
-                  </Typography>
-                  {today && !selected && selectable ? <View style={styles.todayDot} /> : null}
-                </Pressable>
-              );
-            })}
+                  return (
+                    <Pressable
+                      key={date.toISOString()}
+                      onPress={() => {
+                        if (!selectable) return;
+                        setDraftDate(startOfDay(date));
+                      }}
+                      disabled={!selectable}
+                      style={[styles.dayCell, !selectable && styles.dayCellDisabled]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected, disabled: !selectable }}>
+                      {selected ? <View style={styles.dayCellSelected} /> : null}
+                      <Typography
+                        variant="text"
+                        size="sm"
+                        weight={selected ? 'bold' : 'medium'}
+                        color={
+                          selected
+                            ? palette.white
+                            : !selectable
+                              ? palette.gray[300]
+                              : inMonth
+                                ? palette.gray[800]
+                                : palette.gray[400]
+                        }>
+                        {date.getDate()}
+                      </Typography>
+                      {today && !selected && selectable ? <View style={styles.todayDot} /> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
           </View>
 
           <View style={styles.actions}>
@@ -219,17 +233,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   grid: {
+    gap: 2,
+  },
+  weekRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
   },
   dayCell: {
-    width: `${100 / 7}%`,
+    flex: 1,
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.full,
   },
   dayCellSelected: {
+    position: 'absolute',
+    width: DAY_MARKER_SIZE,
+    height: DAY_MARKER_SIZE,
+    borderRadius: DAY_MARKER_SIZE / 2,
     backgroundColor: palette.gray[800],
   },
   dayCellDisabled: {

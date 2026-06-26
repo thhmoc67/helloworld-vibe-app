@@ -1,11 +1,14 @@
 import { Image, type ImageSource } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useRef, useState } from 'react';
+import { LayoutAnimation, Pressable, StyleSheet, Text, UIManager, View, type StyleProp, type ViewStyle } from 'react-native';
+import type { ICarouselInstance } from 'react-native-reanimated-carousel';
 
 import { SymbolView } from 'expo-symbols';
 
+import { HwCarousel } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
+import { WishlistHeartButton } from '@/components/wishlist/wishlist-heart-button';
 import { fontStyleForWeight } from '@/constants/fonts';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
@@ -15,6 +18,24 @@ import { useSelectedCity } from '@/stores/auth-store';
 import type { PropertyBadge, PropertyListing } from '@/types/property';
 import { COMING_SOON_IMAGE_URI } from '@/utils/images';
 import { getImageUriFromSource, shareProperty } from '@/utils/share-property';
+
+if (UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const MEDIA_HEIGHT = 220;
+
+type PropertyCardImageSlide = {
+  id: string;
+  source: ImageSource;
+};
+
+function toCarouselSlides(propertyId: string | number, images: PropertyListing['images']): PropertyCardImageSlide[] {
+  return resolvePropertyImages(images).map((source, index) => ({
+    id: `${propertyId}-${index}`,
+    source,
+  }));
+}
 
 function resolvePropertyImages(images: PropertyListing['images']) {
   const validImages = images.filter((image) => {
@@ -84,24 +105,33 @@ export function PropertyCard({
   const propertyId = Number(property.id);
   const favorited = isFavorite ?? (Number.isFinite(propertyId) ? wishlist?.isWishlisted(propertyId) : false);
 
-  const cardImages = resolvePropertyImages(property.images);
+  const cardImages = toCarouselSlides(property.id, property.images);
   const imageCount = cardImages.length;
+  const carouselRef = useRef<ICarouselInstance>(null);
+  const [carouselWidth, setCarouselWidth] = useState(0);
   const [imageIndex, setImageIndex] = useState(0);
-  const [useFallbackImage, setUseFallbackImage] = useState(false);
-  const currentImage = useFallbackImage
-    ? { uri: COMING_SOON_IMAGE_URI }
-    : (cardImages[imageIndex] ?? cardImages[0]);
+  const [failedIndexes, setFailedIndexes] = useState<Set<number>>(new Set());
+
+  function handleImageIndexChange(index: number) {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setImageIndex(index);
+  }
 
   function showPreviousImage() {
     if (imageCount <= 1) return;
-    setUseFallbackImage(false);
-    setImageIndex((index) => (index === 0 ? imageCount - 1 : index - 1));
+    carouselRef.current?.scrollTo({ count: -1, animated: true });
   }
 
   function showNextImage() {
     if (imageCount <= 1) return;
-    setUseFallbackImage(false);
-    setImageIndex((index) => (index === imageCount - 1 ? 0 : index + 1));
+    carouselRef.current?.scrollTo({ count: 1, animated: true });
+  }
+
+  function resolveSlideSource(index: number, source: ImageSource) {
+    if (failedIndexes.has(index)) {
+      return { uri: COMING_SOON_IMAGE_URI };
+    }
+    return source;
   }
 
   function handleFavoritePress() {
@@ -148,7 +178,7 @@ export function PropertyCard({
       location: property.location,
       city,
       startingRent: property.startingRent,
-      imageUri: getImageUriFromSource(cardImages[0]),
+      imageUri: getImageUriFromSource(cardImages[0]?.source),
     });
   }
 
@@ -159,13 +189,44 @@ export function PropertyCard({
           onPress={onPress}
           style={({ pressed }) => [pressed && onPress ? styles.cardPressed : null]}
           accessibilityRole={onPress ? 'button' : undefined}>
-          <View style={styles.mediaSection}>
-        <Image
-          source={currentImage}
-          style={styles.heroImage}
-          contentFit="cover"
-          onError={() => setUseFallbackImage(true)}
-        />
+          <View
+            style={styles.mediaSection}
+            onLayout={(event) => setCarouselWidth(event.nativeEvent.layout.width)}>
+            {imageCount === 1 ? (
+              <Image
+                source={resolveSlideSource(0, cardImages[0]?.source ?? { uri: COMING_SOON_IMAGE_URI })}
+                style={styles.heroImage}
+                contentFit="cover"
+                onError={() => setFailedIndexes((current) => new Set(current).add(0))}
+              />
+            ) : carouselWidth > 0 ? (
+              <HwCarousel
+                data={cardImages}
+                width={carouselWidth}
+                height={MEDIA_HEIGHT}
+                loop
+                showPagination={false}
+                carouselRef={carouselRef}
+                onSnapToItem={handleImageIndexChange}
+                style={styles.carousel}
+                renderItem={({ item, index }) => (
+                  <Image
+                    source={resolveSlideSource(index, item.source)}
+                    style={[styles.heroImage, { width: carouselWidth, height: MEDIA_HEIGHT }]}
+                    contentFit="cover"
+                    onError={() =>
+                      setFailedIndexes((current) => new Set(current).add(index))
+                    }
+                  />
+                )}
+              />
+            ) : (
+              <Image
+                source={resolveSlideSource(0, cardImages[0]?.source ?? { uri: COMING_SOON_IMAGE_URI })}
+                style={styles.heroImage}
+                contentFit="cover"
+              />
+            )}
 
         {imageCount > 1 ? (
           <>
@@ -190,9 +251,9 @@ export function PropertyCard({
               <SymbolView name="chevron.right" size={14} weight="semibold" tintColor={palette.white} />
             </Pressable>
             <View style={styles.dotsRow}>
-              {cardImages.map((_, index) => (
+              {cardImages.map((slide, index) => (
                 <View
-                  key={`dot-${property.id}-${index}`}
+                  key={slide.id}
                   style={[styles.dot, index === imageIndex ? styles.dotActive : null]}
                 />
               ))}
@@ -238,20 +299,12 @@ export function PropertyCard({
             {property.location}
           </Text>
           <View style={styles.iconActions}>
-            <Pressable
-              onPress={(event) => {
-                event.stopPropagation();
-                handleFavoritePress();
-              }}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={favorited ? 'Remove from wishlist' : 'Add to wishlist'}>
-              <SymbolView
-                name={favorited ? 'heart.fill' : 'heart'}
-                size={20}
-                tintColor={favorited ? palette.red[500] : palette.gray[800]}
-              />
-            </Pressable>
+            <WishlistHeartButton
+              isFavorite={favorited}
+              inactiveColor={palette.gray[800]}
+              stopPropagation
+              onPress={handleFavoritePress}
+            />
             <Pressable
               onPress={(event) => {
                 event.stopPropagation();
@@ -323,8 +376,12 @@ const styles = StyleSheet.create({
   },
   mediaSection: {
     position: 'relative',
-    height: 220,
+    height: MEDIA_HEIGHT,
     backgroundColor: palette.gray[100],
+    overflow: 'hidden',
+  },
+  carousel: {
+    flex: 1,
   },
   heroImage: {
     width: '100%',
@@ -340,6 +397,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(16, 24, 40, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
   },
   carouselButtonLeft: {
     left: 12,
@@ -356,6 +414,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
+    zIndex: 2,
   },
   dot: {
     width: 6,

@@ -1,35 +1,65 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { getTenantProfile } from '@/api/user';
+import { EMPTY_MOVE_IN_BACKGROUND } from '@/types/move-in-background';
+import type { MoveInBackground } from '@/types/move-in-background';
 import type { TenantProfile } from '@/types/tenant';
 
 type TenantState = {
   profile: TenantProfile | null;
   profileLoaded: boolean;
+  moveInInterests: string[];
+  moveInBackground: MoveInBackground;
   setProfile: (profile: TenantProfile | null) => void;
+  setMoveInInterests: (interests: string[]) => void;
+  setMoveInBackground: (background: MoveInBackground) => void;
   clearProfile: () => void;
   fetchProfile: () => Promise<void>;
 };
 
-export const useTenantStore = create<TenantState>((set) => ({
-  profile: null,
-  profileLoaded: false,
-  setProfile: (profile) => set({ profile, profileLoaded: true }),
-  clearProfile: () => set({ profile: null, profileLoaded: false }),
-  fetchProfile: async () => {
-    set({ profileLoaded: false });
-    try {
-      const data = await getTenantProfile();
-      if (data?.status === 404 || !data?.bookingId) {
-        set({ profile: null, profileLoaded: true });
-        return;
-      }
-      set({ profile: data, profileLoaded: true });
-    } catch {
-      set({ profile: null, profileLoaded: true });
-    }
-  },
-}));
+export const useTenantStore = create<TenantState>()(
+  persist(
+    (set) => ({
+      profile: null,
+      profileLoaded: false,
+      moveInInterests: [],
+      moveInBackground: EMPTY_MOVE_IN_BACKGROUND,
+      setProfile: (profile) => set({ profile, profileLoaded: true }),
+      setMoveInInterests: (moveInInterests) => set({ moveInInterests }),
+      setMoveInBackground: (moveInBackground) => set({ moveInBackground }),
+      clearProfile: () =>
+        set({
+          profile: null,
+          profileLoaded: false,
+          moveInInterests: [],
+          moveInBackground: EMPTY_MOVE_IN_BACKGROUND,
+        }),
+      fetchProfile: async () => {
+        set({ profileLoaded: false });
+        try {
+          const data = await getTenantProfile();
+          if (data?.status === 404 || !data?.bookingId) {
+            set({ profile: null, profileLoaded: true });
+            return;
+          }
+          set({ profile: data, profileLoaded: true });
+        } catch {
+          set({ profile: null, profileLoaded: true });
+        }
+      },
+    }),
+    {
+      name: 'tenant-store',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        moveInInterests: state.moveInInterests,
+        moveInBackground: state.moveInBackground,
+      }),
+    },
+  ),
+);
 
 export function useTenantProfile() {
   return useTenantStore((state) => state.profile);

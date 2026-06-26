@@ -1,166 +1,306 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { SymbolView } from 'expo-symbols';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient'
+import { SymbolView } from 'expo-symbols'
+import { useEffect, useState } from 'react'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeOut,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated'
+import Svg, {
+  Circle,
+  Defs,
+  Stop,
+  LinearGradient as SvgLinearGradient
+} from 'react-native-svg'
 
-import { GradientText } from '@/components/ui/gradient-text';
-import { Typography } from '@/components/ui/typography';
-import palette from '@/constants/palette';
-import { Radius } from '@/constants/theme';
+import { GradientText } from '@/components/ui/gradient-text'
+import { Typography } from '@/components/ui/typography'
+import palette from '@/constants/palette'
+import { Radius } from '@/constants/theme'
+import { PROPERTY_VIBE_OPTIONS, type PropertyVibeOption } from '@/constants/vibes'
 
 type VibeMatchItem = {
-  id: string;
-  label: string;
-  emoji: string;
-  percent: number;
-};
+  id: string
+  label: string
+  emoji: string
+  percent: number
+}
 
 type HdpVibeMatchCardProps = {
-  matchPercent: number;
-  propertyName?: string;
-  selectedVibeCount?: number;
-  vibeMatches?: VibeMatchItem[];
-  workplaces?: string[];
-  colleges?: string[];
-  extraCount?: number;
-  onShowMore?: () => void;
-};
+  matchPercent: number
+  propertyName?: string
+  selectedVibeCount?: number
+  vibeMatches?: VibeMatchItem[]
+  propertyVibes?: readonly PropertyVibeOption[]
+  workplaces?: string[]
+  colleges?: string[]
+  extraCount?: number
+}
 
 const DEFAULT_VIBE_MATCHES: VibeMatchItem[] = [
   { id: 'chill', label: 'Chill', emoji: '😎', percent: 87 },
   { id: 'night-owl', label: 'Night Owl', emoji: '🌙', percent: 97 },
   { id: 'gaming', label: 'Gamers', emoji: '🎮', percent: 78 },
-  { id: 'creative', label: 'Creative', emoji: '🎨', percent: 84 },
-];
+  { id: 'creative', label: 'Creative', emoji: '🎨', percent: 84 }
+]
 
-const DEFAULT_WORKPLACES = ['Google', 'Microsoft', 'Amazon', 'Swiggy'];
-const DEFAULT_COLLEGES = ['IIT Bombay', 'BITS Pilani', 'NIT Trichy'];
+const DEFAULT_WORKPLACES = ['Google', 'Microsoft', 'Amazon', 'Swiggy']
+const DEFAULT_COLLEGES = ['IIT Bombay', 'BITS Pilani', 'NIT Trichy']
 
-const RING_GRADIENT = [palette.blue[400], palette.purpleScale[600]] as const;
+const RING_GRADIENT = [palette.blue[400], palette.purpleScale[600]] as const
 
-function MatchScoreRing({ percent, size = 76 }: { percent: number; size?: number }) {
-  const strokeWidth = 5;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(Math.max(percent, 0), 100) / 100;
-  const dashOffset = circumference * (1 - progress);
+const SCORE_RING_GRADIENT = [
+  palette.blue[400],
+  palette.purpleScale[500],
+  palette.purpleScale[600],
+] as const
+
+const SCORE_RING_TEXT_GRADIENT = [palette.blue[500], palette.purpleScale[600]] as const
+
+function MatchScoreRing ({
+  percent,
+  size = 72
+}: {
+  percent: number
+  size?: number
+}) {
+  const strokeWidth = 4
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = Math.min(Math.max(percent, 0), 100) / 100
+  const dashOffset = circumference * (1 - progress)
+  const center = size / 2
 
   return (
     <View style={[styles.ringWrap, { width: size, height: size }]}>
       <Svg width={size} height={size}>
         <Defs>
-          <SvgLinearGradient id="vibeRing" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={RING_GRADIENT[0]} />
-            <Stop offset="1" stopColor={RING_GRADIENT[1]} />
+          <SvgLinearGradient
+            id='vibeScoreRing'
+            x1={center * 0.15}
+            y1={size}
+            x2={center * 1.85}
+            y2={0}
+            gradientUnits='userSpaceOnUse'
+          >
+            <Stop offset='0' stopColor={SCORE_RING_GRADIENT[0]} />
+            <Stop offset='0.55' stopColor={SCORE_RING_GRADIENT[1]} />
+            <Stop offset='1' stopColor={SCORE_RING_GRADIENT[2]} />
           </SvgLinearGradient>
         </Defs>
         <Circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={center}
+          cy={center}
           r={radius}
-          stroke={palette.gray[200]}
+          stroke={palette.white}
           strokeWidth={strokeWidth}
-          fill="none"
+          fill='none'
         />
         <Circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={center}
+          cy={center}
           r={radius}
-          stroke="url(#vibeRing)"
+          stroke='url(#vibeScoreRing)'
           strokeWidth={strokeWidth}
-          fill="none"
+          fill='none'
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={dashOffset}
-          strokeLinecap="round"
-          rotation="-90"
-          origin={`${size / 2}, ${size / 2}`}
+          strokeLinecap='round'
+          rotation='60'
+          origin={`${center}, ${center}`}
         />
       </Svg>
       <View style={styles.ringLabel}>
-        <GradientText variant="text" size="sm" weight="bold" colors={RING_GRADIENT}>
-          {Math.round(percent)}%
+        <GradientText
+          variant='text'
+          size='sm'
+          weight='bold'
+          colors={SCORE_RING_TEXT_GRADIENT}
+          style={styles.ringPercent}
+        >
+          {`${Math.round(percent)}%`}
         </GradientText>
       </View>
     </View>
-  );
+  )
 }
 
-function VibeMatchTile({ item }: { item: VibeMatchItem }) {
+function VibeMatchTile ({ item }: { item: VibeMatchItem }) {
   return (
     <View style={styles.vibeTile}>
-      <Typography variant="text" size="lg" style={styles.vibeEmoji}>
+      <Typography variant='text' size='lg' style={styles.vibeEmoji}>
         {item.emoji}
       </Typography>
-      <Typography variant="text" size="xs" weight="medium" color={palette.gray[800]}>
+      <Typography
+        variant='text'
+        size='xs'
+        weight='medium'
+        color={palette.gray[800]}
+      >
         {item.label}
       </Typography>
-      <GradientText variant="text" size="xl" weight="bold" colors={RING_GRADIENT}>
-        {item.percent}%
+      <GradientText
+        variant='text'
+        size='xl'
+        weight='bold'
+        colors={RING_GRADIENT}
+      >
+        {`${item.percent}%`}
       </GradientText>
-      <Typography variant="text" size="xs" color={palette.gray[400]}>
+      <Typography variant='text' size='xs' color={palette.gray[400]}>
         Match
       </Typography>
     </View>
-  );
+  )
 }
 
-function ResidentInfoCard({
+function PropertyVibeChip ({ label, emoji }: { label: string; emoji: string }) {
+  return (
+    <View style={styles.propertyVibeChip}>
+      <Typography variant='text' size='sm' style={styles.propertyVibeEmoji}>
+        {emoji}
+      </Typography>
+      <Typography variant='text' size='sm' weight='medium' color={palette.gray[800]}>
+        {label}
+      </Typography>
+    </View>
+  )
+}
+
+function AnimatedPropertyVibes ({
+  vibes,
+  expanded,
+}: {
+  vibes: readonly PropertyVibeOption[]
+  expanded: boolean
+}) {
+  const expandProgress = useSharedValue(expanded ? 1 : 0)
+  const contentHeight = useSharedValue(0)
+
+  useEffect(() => {
+    expandProgress.value = withTiming(expanded ? 1 : 0, {
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+    })
+  }, [expandProgress, expanded])
+
+  const containerStyle = useAnimatedStyle(() => ({
+    height: contentHeight.value > 0 ? contentHeight.value * expandProgress.value : 0,
+    opacity: interpolate(expandProgress.value, [0, 0.35, 1], [0, 0.7, 1]),
+    overflow: 'hidden',
+  }))
+
+  return (
+    <Animated.View style={[styles.propertyVibeContainer, containerStyle]}>
+      <View
+        style={styles.propertyVibeList}
+        onLayout={(event) => {
+          const nextHeight = event.nativeEvent.layout.height
+          if (nextHeight > 0) {
+            contentHeight.value = nextHeight
+          }
+        }}>
+        {vibes.map((vibe, index) => (
+          <Animated.View
+            key={vibe.id}
+            entering={expanded ? FadeIn.duration(220).delay(index * 40) : undefined}
+            exiting={FadeOut.duration(160)}>
+            <PropertyVibeChip label={vibe.label} emoji={vibe.emoji} />
+          </Animated.View>
+        ))}
+      </View>
+    </Animated.View>
+  )
+}
+
+function ResidentInfoCard ({
   icon,
   title,
   items,
-  extraCount,
+  extraCount
 }: {
-  icon: string;
-  title: string;
-  items: string[];
-  extraCount: number;
+  icon: string
+  title: string
+  items: string[]
+  extraCount: number
 }) {
   return (
     <View style={styles.residentCard}>
-      <Typography variant="text" size="xs" color={palette.gray[500]}>
+      <Typography variant='text' size='xs' color={palette.gray[500]}>
         {icon} {title}
       </Typography>
       <View style={styles.residentRow}>
         <Typography
-          variant="text"
-          size="sm"
-          weight="bold"
+          variant='text'
+          size='sm'
+          weight='semibold'
           color={palette.gray[900]}
-          style={styles.residentText}>
+          style={styles.residentText}
+        >
           {items.join(' • ')}
         </Typography>
         <View style={styles.extraBadge}>
-          <Typography variant="text" size="xs" weight="bold" color={palette.gray[800]}>
+          <Typography
+            variant='text'
+            size='xs'
+            weight='bold'
+            color={palette.gray[800]}
+          >
             +{extraCount}
           </Typography>
         </View>
       </View>
     </View>
-  );
+  )
 }
 
-export function HdpVibeMatchCard({
+export function HdpVibeMatchCard ({
   matchPercent,
   propertyName = 'this property',
   selectedVibeCount = 5,
   vibeMatches = DEFAULT_VIBE_MATCHES,
+  propertyVibes = PROPERTY_VIBE_OPTIONS,
   workplaces = DEFAULT_WORKPLACES,
   colleges = DEFAULT_COLLEGES,
-  extraCount = 31,
-  onShowMore,
+  extraCount = 31
 }: HdpVibeMatchCardProps) {
+  const [showPropertyVibes, setShowPropertyVibes] = useState(false)
+  const chevronProgress = useSharedValue(0)
+
+  useEffect(() => {
+    chevronProgress.value = withTiming(showPropertyVibes ? 1 : 0, {
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+    })
+  }, [chevronProgress, showPropertyVibes])
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${interpolate(chevronProgress.value, [0, 1], [0, 180])}deg` }],
+  }))
+
   return (
     <LinearGradient
-      colors={[palette.blue[50], palette.purpleScale[50]]}
-      start={{ x: 0, y: 0 }}
+      colors={[palette.vibeMatchCardGradientStart, palette.vibeMatchCardGradientEnd]}
+      start={{ x: 0, y: 1 }}
       end={{ x: 1, y: 1 }}
-      style={styles.card}>
+      style={styles.card}
+    >
       <View style={styles.headerRow}>
         <View style={styles.headerCopy}>
-          <Typography variant="text" size="md" weight="bold" color={palette.gray[900]}>
+          <Typography
+            variant='text'
+            size='md'
+            weight='bold'
+            color={palette.gray[900]}
+          >
             How well this home matches your vibe
           </Typography>
-          <Typography variant="text" size="xs" color={palette.gray[600]}>
+          <Typography variant='text' size='xs' color={palette.gray[600]}>
             Based on the {selectedVibeCount} vibes you selected
           </Typography>
         </View>
@@ -170,44 +310,70 @@ export function HdpVibeMatchCard({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.vibeRow}>
-        {vibeMatches.map((item) => (
+        contentContainerStyle={styles.vibeRow}
+      >
+        {vibeMatches.map(item => (
           <VibeMatchTile key={item.id} item={item} />
         ))}
       </ScrollView>
 
       <View style={styles.residentList}>
         <ResidentInfoCard
-          icon="🏢"
-          title="Residents work at"
+          icon='🏢'
+          title='Residents work at'
           items={workplaces}
           extraCount={extraCount}
         />
         <ResidentInfoCard
-          icon="🎓"
-          title="From colleges like"
+          icon='🎓'
+          title='From colleges like'
           items={colleges}
           extraCount={extraCount}
         />
       </View>
 
+      <AnimatedPropertyVibes vibes={propertyVibes} expanded={showPropertyVibes} />
+
       <View style={styles.footer}>
-        <Typography variant="text" size="sm" weight="medium" color={palette.blue[900]} style={styles.footerText}>
+        <Typography
+          variant='text'
+          size='sm'
+          weight='medium'
+          style={styles.footerText}
+        >
           See what residents at {propertyName} are usually into
         </Typography>
         <Pressable
-          onPress={onShowMore}
-          style={({ pressed }) => [styles.showMore, pressed && styles.showMorePressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Show more resident interests">
-          <Typography variant="text" size="sm" weight="bold" color={palette.blue[500]}>
-            Show More
+          onPress={() => setShowPropertyVibes(current => !current)}
+          style={({ pressed }) => [
+            styles.showMore,
+            pressed && styles.showMorePressed
+          ]}
+          accessibilityRole='button'
+          accessibilityLabel={
+            showPropertyVibes ? 'Hide property vibes' : 'Show property vibes'
+          }
+          accessibilityState={{ expanded: showPropertyVibes }}
+        >
+          <Typography
+            variant='text'
+            size='sm'
+            color={palette.blue[600]}
+          >
+            {showPropertyVibes ? 'Show Less' : 'Show More'}
           </Typography>
-          <SymbolView name="chevron.down" size={12} weight="semibold" tintColor={palette.blue[500]} />
+          <Animated.View style={chevronStyle}>
+            <SymbolView
+              name='chevron.down'
+              size={12}
+              weight='semibold'
+              tintColor={palette.blue[500]}
+            />
+          </Animated.View>
         </Pressable>
       </View>
     </LinearGradient>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -217,31 +383,36 @@ const styles = StyleSheet.create({
     borderColor: palette.gray[200],
     padding: 16,
     gap: 16,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 12
   },
   headerCopy: {
     flex: 1,
     gap: 4,
-    paddingRight: 8,
+    paddingRight: 8
   },
   ringWrap: {
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   ringLabel: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
+  },
+  ringPercent: {
+    fontSize: 15,
+    lineHeight: 18,
+    letterSpacing: -0.2
   },
   vibeRow: {
     gap: 10,
-    paddingRight: 4,
+    paddingRight: 4
   },
   vibeTile: {
     width: 96,
@@ -258,29 +429,58 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 1,
+    borderWidth: 1,
+    borderColor: '#EDE8F5'
   },
   vibeEmoji: {
     fontSize: 22,
-    lineHeight: 28,
+    lineHeight: 28
   },
   residentList: {
-    gap: 10,
+    gap: 10
+  },
+  propertyVibeContainer: {
+    position: 'relative',
+  },
+  propertyVibeList: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  propertyVibeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: palette.white,
+    borderRadius: Radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.gray[200]
+  },
+  propertyVibeEmoji: {
+    fontSize: 15,
+    lineHeight: 18
   },
   residentCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.72)',
     borderRadius: Radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    gap: 8,
+    gap: 8
   },
   residentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 10
   },
   residentText: {
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 20
   },
   extraBadge: {
     minWidth: 36,
@@ -294,25 +494,25 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 2
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 12
   },
   footerText: {
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 20
   },
   showMore: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    flexShrink: 0,
+    flexShrink: 0
   },
   showMorePressed: {
-    opacity: 0.85,
-  },
-});
+    opacity: 0.85
+  }
+})

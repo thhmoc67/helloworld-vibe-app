@@ -11,6 +11,7 @@ import { openInvoiceUrl, PaymentCard } from '@/components/tenant/payment-card';
 import { TenantScreenHeader } from '@/components/tenant/tenant-screen-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SegmentedTabToggle } from '@/components/ui/segmented-tab-toggle';
+import { SwipeableTabPager } from '@/components/ui/swipeable-tab-pager';
 import palette from '@/constants/palette';
 import { TAB_SCREEN_EXTRA_PADDING } from '@/constants/tab-bar';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
@@ -18,6 +19,8 @@ import { useInvoicePayment } from '@/hooks/use-invoice-payment';
 import { useTenantInvoices } from '@/queries/use-tenant-invoices';
 
 type PaymentsTab = 'pending' | 'past';
+
+const PAYMENTS_TABS: PaymentsTab[] = ['pending', 'past'];
 
 function PaymentsEmptyState() {
   return (
@@ -34,25 +37,14 @@ export function TenantPaymentsScreen() {
   const { data, isLoading, refetch, isRefetching } = useTenantInvoices();
   const [tab, setTab] = useState<PaymentsTab>('pending');
 
-  const list = tab === 'pending' ? data?.pending ?? [] : data?.paid ?? [];
+  function renderTabContent(tabId: PaymentsTab) {
+    const list = tabId === 'pending' ? data?.pending ?? [] : data?.paid ?? [];
 
-  return (
-    <View style={styles.root}>
-      <TenantScreenHeader title="Payments" />
-
+    return (
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: tabBarInset + TAB_SCREEN_EXTRA_PADDING }]}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
         showsVerticalScrollIndicator={false}>
-        <SegmentedTabToggle
-          value={tab}
-          onChange={setTab}
-          tabs={[
-            { id: 'pending', label: 'Pending Payment' },
-            { id: 'past', label: 'Past Payments' },
-          ]}
-        />
-
         {isLoading ? (
           <ActivityIndicator color={palette.lime[700]} style={styles.loader} />
         ) : list.length > 0 ? (
@@ -61,18 +53,39 @@ export function TenantPaymentsScreen() {
               <PaymentCard
                 key={invoice.invoice_id}
                 invoice={invoice}
-                variant={tab === 'pending' ? 'pending' : 'paid'}
+                variant={tabId === 'pending' ? 'pending' : 'paid'}
                 onPay={() => payInvoice(invoice)}
                 onInvoice={() => openInvoiceUrl(invoice.invoice_url)}
               />
             ))}
           </View>
-        ) : tab === 'pending' ? (
+        ) : tabId === 'pending' ? (
           <PaymentsEmptyState />
         ) : (
           <EmptyState compact title="No past payments found" />
         )}
       </ScrollView>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <TenantScreenHeader title="Payments" />
+
+      <View style={styles.controls}>
+        <SegmentedTabToggle
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { id: 'pending', label: 'Pending Payment' },
+            { id: 'past', label: 'Past Payments' },
+          ]}
+        />
+      </View>
+
+      <SwipeableTabPager tabs={PAYMENTS_TABS} value={tab} onChange={setTab}>
+        {renderTabContent}
+      </SwipeableTabPager>
     </View>
   );
 }
@@ -82,9 +95,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: palette.gray[50],
   },
-  scroll: {
+  controls: {
     paddingHorizontal: 24,
     paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: palette.gray[50],
+  },
+  scroll: {
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    flexGrow: 1,
     gap: 16,
   },
   list: {

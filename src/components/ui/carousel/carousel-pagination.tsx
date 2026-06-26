@@ -20,8 +20,8 @@ export function CarouselPagination<T extends object>({
   progress,
   data,
   onPress,
-  dotColor = palette.gray[600],
-  activeDotColor = palette.gray[300],
+  dotColor = palette.gray[300],
+  activeDotColor = palette.gray[800],
 }: CarouselPaginationProps<T>) {
   return (
     <Pagination.Custom

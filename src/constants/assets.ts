@@ -44,6 +44,7 @@ export const ImageAssets = {
   otpIllustration: require('../../assets/bundled/login/OTP 3d Illustration.png'),
   contactIllustration: require('../../assets/bundled/contact/illustration.png'),
   appIcon: require('../../assets/images/icon.png'),
+  paymentLogo: require('../../assets/images/icon.png'),
   splashIcon: require('../../assets/images/splash-icon.png'),
   hdpTrophy: require('../../assets/hw-vibe/HDP/Top choice trophy.png'),
   tourConfirmed: require('../../assets/hw-vibe/HDP/Tour Confirmed.png'),

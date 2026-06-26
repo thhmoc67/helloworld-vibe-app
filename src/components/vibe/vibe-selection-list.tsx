@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { VibeChip, type VibeChipVariant } from '@/components/vibe/vibe-chip';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
@@ -17,11 +18,17 @@ type VibeSelectionListProps = {
   onChange: (selectedIds: string[]) => void;
   variant?: VibeChipVariant;
   multiple?: boolean;
+  maxSelection?: number;
+  onMaxReached?: () => void;
   hint?: ReactNode;
   scrollable?: boolean;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  animateOnMount?: boolean;
 };
+
+const CHIP_ENTER_MS = 220;
+const CHIP_STAGGER_MS = 45;
 
 export function VibeSelectionList({
   vibes,
@@ -29,15 +36,22 @@ export function VibeSelectionList({
   onChange,
   variant = 'onDark',
   multiple = true,
+  maxSelection,
+  onMaxReached,
   hint,
   scrollable = true,
   style,
   contentContainerStyle,
+  animateOnMount = true,
 }: VibeSelectionListProps) {
   function toggleVibe(id: string) {
     const isSelected = selectedIds.includes(id);
 
     if (multiple) {
+      if (!isSelected && maxSelection && selectedIds.length >= maxSelection) {
+        onMaxReached?.();
+        return;
+      }
       onChange(isSelected ? selectedIds.filter((v) => v !== id) : [...selectedIds, id]);
       return;
     }
@@ -45,15 +59,20 @@ export function VibeSelectionList({
     onChange(isSelected ? [] : [id]);
   }
 
-  const chips = vibes.map((vibe) => (
-    <VibeChip
+  const chips = vibes.map((vibe, index) => (
+    <Animated.View
       key={vibe.id}
-      label={vibe.label}
-      emoji={vibe.emoji}
-      selected={selectedIds.includes(vibe.id)}
-      onPress={() => toggleVibe(vibe.id)}
-      variant={variant}
-    />
+      entering={
+        animateOnMount ? FadeInDown.duration(CHIP_ENTER_MS).delay(index * CHIP_STAGGER_MS) : undefined
+      }>
+      <VibeChip
+        label={vibe.label}
+        emoji={vibe.emoji}
+        selected={selectedIds.includes(vibe.id)}
+        onPress={() => toggleVibe(vibe.id)}
+        variant={variant}
+      />
+    </Animated.View>
   ));
 
   return (

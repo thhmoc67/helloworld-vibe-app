@@ -1,18 +1,37 @@
 import { StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { MenuRow } from '@/components/menu/menu-row';
 import { Typography } from '@/components/ui/typography';
 import type { MenuSection } from '@/constants/menu';
 import palette from '@/constants/palette';
 
+const SECTION_ENTER_MS = 240;
+const SECTION_STAGGER_MS = 70;
+
 type MenuSectionCardProps = {
   section: MenuSection;
   onItemPress: (itemId: string) => void;
+  sectionIndex?: number;
+  itemIndexOffset?: number;
+  animateOnMount?: boolean;
 };
 
-export function MenuSectionCard({ section, onItemPress }: MenuSectionCardProps) {
+export function MenuSectionCard({
+  section,
+  onItemPress,
+  sectionIndex = 0,
+  itemIndexOffset = 0,
+  animateOnMount = true,
+}: MenuSectionCardProps) {
   return (
-    <View style={styles.section}>
+    <Animated.View
+      entering={
+        animateOnMount
+          ? FadeInDown.duration(SECTION_ENTER_MS).delay(sectionIndex * SECTION_STAGGER_MS)
+          : undefined
+      }
+      style={styles.section}>
       <Typography variant="text" size="md" weight="bold" style={styles.title}>
         {section.title}
       </Typography>
@@ -21,12 +40,14 @@ export function MenuSectionCard({ section, onItemPress }: MenuSectionCardProps) 
           <MenuRow
             key={item.id}
             item={item}
+            index={itemIndexOffset + index}
+            animateOnMount={animateOnMount}
             onPress={() => onItemPress(item.id)}
             isLast={index === section.items.length - 1}
           />
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

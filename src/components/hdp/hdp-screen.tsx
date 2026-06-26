@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -16,6 +16,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HdpSimilarPropertiesSection } from '@/components/hdp/hdp-similar-properties-section';
+import { HdpDayFromHereSection } from '@/components/hdp/hdp-day-from-here-section';
+import { HdpMomentsSection } from '@/components/hdp/hdp-moments-section';
 import { HdpAmenityPills } from '@/components/hdp/hdp-amenity-pills';
 import { HdpFaqList } from '@/components/hdp/hdp-faq-list';
 import { HdpFooterBar } from '@/components/hdp/hdp-footer-bar';
@@ -41,6 +43,8 @@ import { usePropertyCategories } from '@/queries/use-property-categories';
 import { useWishlist } from '@/providers/wishlist-provider';
 import { useSelectedCity } from '@/stores/auth-store';
 import { formatPropertyImageUrl, getPropertyImageKeys } from '@/utils/images';
+import { extractNearByFromDetail, mapNearByToDayCards } from '@/utils/hdp-nearby';
+import { extractMomentsFromHdp } from '@/utils/hdp-moments';
 import { shareProperty } from '@/utils/share-property';
 
 const SHEET_OVERLAP = 40;
@@ -79,6 +83,17 @@ function buildAmenities(property: Record<string, any> | null) {
 }
 
 const HEADER_BAR_HEIGHT = 64;
+const TAB_BAR_HEIGHT = 52;
+const SECTION_SCROLL_GAP = 8;
+
+function assignSectionRef(
+  sectionRefs: MutableRefObject<Partial<Record<HdpSectionId, View | null>>>,
+  sectionId: HdpSectionId,
+) {
+  return (node: View | null) => {
+    sectionRefs.current[sectionId] = node;
+  };
+}
 
 export function HdpScreen() {
   const router = useRouter();
@@ -106,6 +121,9 @@ export function HdpScreen() {
   const lastScrollYRef = useRef(0);
   const tabStickScrollYRef = useRef(0);
   const tabAnchorRef = useRef<View>(null);
+  const scrollRef = useRef<Animated.ScrollView>(null);
+  const scrollContentRef = useRef<View>(null);
+  const sectionRefs = useRef<Partial<Record<HdpSectionId, View | null>>>({});
   const stickyTop = insets.top + HEADER_BAR_HEIGHT;
 
   const updateStickyTabs = useCallback((currentY: number) => {
@@ -118,6 +136,28 @@ export function HdpScreen() {
       updateStickyTabs(lastScrollYRef.current);
     });
   }, [stickyTop, updateStickyTabs]);
+
+  const handleSectionChange = useCallback(
+    (sectionId: HdpSectionId) => {
+      setActiveSection(sectionId);
+
+      const sectionNode = sectionRefs.current[sectionId];
+      const contentNode = scrollContentRef.current;
+      const scrollNode = scrollRef.current;
+
+      if (!sectionNode || !contentNode || !scrollNode) return;
+
+      sectionNode.measureLayout(
+        contentNode,
+        (_x, y) => {
+          const targetY = Math.max(0, y - stickyTop - TAB_BAR_HEIGHT - SECTION_SCROLL_GAP);
+          scrollNode.scrollTo({ y: targetY, animated: true });
+        },
+        () => {},
+      );
+    },
+    [stickyTop],
+  );
 
   const updateFooterVisibility = useCallback((currentY: number) => {
     const previousY = lastScrollYRef.current;
@@ -191,6 +231,15 @@ export function HdpScreen() {
   const vibeMatch = property?.vibe_match ?? property?.vibeMatch ?? 92;
   const visitsToday = property?.visits_today ?? property?.visit_count ?? 7;
   const reviewCount = property?.review_count ?? property?.reviews_count ?? 127;
+  const mapUrl = typeof property?.map_url === 'string' ? property.map_url : undefined;
+  const dayFromHereCards = useMemo(
+    () => mapNearByToDayCards(extractNearByFromDetail(data, property)),
+    [data, property],
+  );
+  const moments = useMemo(
+    () => extractMomentsFromHdp(data?.events, property),
+    [data?.events, property],
+  );
 
   const propertyCity =
     (typeof property?.city === 'string' && property.city) ||
@@ -224,7 +273,6 @@ export function HdpScreen() {
   }
 
   function openMaps() {
-    const mapUrl = property?.map_url;
     if (mapUrl) {
       Linking.openURL(mapUrl).catch(() => undefined);
     }
@@ -266,10 +314,12 @@ export function HdpScreen() {
       ) : (
         <>
           <Animated.ScrollView
+            ref={scrollRef}
             showsVerticalScrollIndicator={false}
             onScroll={scrollHandler}
             scrollEventThrottle={16}
             contentContainerStyle={{ paddingBottom: FOOTER_HEIGHT + 32 }}>
+            <View ref={scrollContentRef} collapsable={false}>
             <HdpHeroCarousel images={carouselImages} />
 
             <View style={styles.sheet}>
@@ -298,11 +348,14 @@ export function HdpScreen() {
                 ref={tabAnchorRef}
                 style={styles.tabBarBleed}
                 onLayout={measureTabStickThreshold}>
-                <HdpSectionNav activeId={activeSection} onChange={setActiveSection} />
+                <HdpSectionNav activeId={activeSection} onChange={handleSectionChange} />
               </View>
 
               <View style={styles.sheetBody}>
-              <View style={styles.section}>
+              <View
+                ref={assignSectionRef(sectionRefs, 'about')}
+                collapsable={false}
+                style={styles.section}>
                 <Typography variant="text" size="xl" weight="bold">
                   About this Place
                 </Typography>
@@ -328,19 +381,38 @@ export function HdpScreen() {
                 )}
               </View>
 
-              <View style={styles.section}>
+              <View
+                ref={assignSectionRef(sectionRefs, 'amenities')}
+                collapsable={false}
+                style={styles.section}>
                 <Typography variant="text" size="xl" weight="bold" style={styles.sectionTitle}>
                   Amenities Included
                 </Typography>
                 <HdpAmenityPills items={amenities} />
               </View>
 
-              <HdpReviewsSection
-                rating={Number(googleRating) || 4.8}
-                reviewCount={reviewCount}
+              <View ref={assignSectionRef(sectionRefs, 'nearby')} collapsable={false}>
+                <HdpDayFromHereSection
+                  propertyName={displayName}
+                  mapUrl={mapUrl}
+                  cards={dayFromHereCards}
+                />
+              </View>
+
+              <HdpMomentsSection
+                propertyName={displayName}
+                moments={moments}
                 carouselWidth={width - 48}
-                reviews={HDP_DUMMY_REVIEWS}
               />
+
+              <View ref={assignSectionRef(sectionRefs, 'reviews')} collapsable={false}>
+                <HdpReviewsSection
+                  rating={Number(googleRating) || 4.8}
+                  reviewCount={reviewCount}
+                  carouselWidth={width - 48}
+                  reviews={HDP_DUMMY_REVIEWS}
+                />
+              </View>
 
               <HdpSimilarPropertiesSection listings={similarListings} />
 
@@ -352,11 +424,12 @@ export function HdpScreen() {
               </View>
               </View>
             </View>
+            </View>
           </Animated.ScrollView>
 
           {showStickyTabs ? (
             <View style={[styles.stickyTabBar, { top: stickyTop }]}>
-              <HdpSectionNav activeId={activeSection} onChange={setActiveSection} />
+              <HdpSectionNav activeId={activeSection} onChange={handleSectionChange} />
             </View>
           ) : null}
 

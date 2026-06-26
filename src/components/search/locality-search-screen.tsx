@@ -9,6 +9,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,41 @@ import palette from '@/constants/palette';
 import { useLocalitySearch } from '@/queries/use-locality-search';
 import { useAuthStore, useSelectedCity } from '@/stores/auth-store';
 import type { SearchPropertyResult } from '@/types/search';
+
+const RESULT_ENTER_MS = 220;
+const RESULT_STAGGER_MS = 45;
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+type SearchResultRowProps = {
+  index: number;
+  label: string;
+  icon: 'mappin.and.ellipse' | 'building.2';
+  onPress: () => void;
+  accessibilityLabel: string;
+};
+
+function SearchResultRow({
+  index,
+  label,
+  icon,
+  onPress,
+  accessibilityLabel,
+}: SearchResultRowProps) {
+  return (
+    <AnimatedPressable
+      entering={FadeInDown.duration(RESULT_ENTER_MS).delay(index * RESULT_STAGGER_MS)}
+      onPress={onPress}
+      style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}>
+      <SymbolView name={icon} size={20} tintColor={palette.gray[700]} />
+      <Typography variant="text" size="md" style={styles.resultLabel}>
+        {label}
+      </Typography>
+    </AnimatedPressable>
+  );
+}
 
 export function LocalitySearchScreen() {
   const router = useRouter();
@@ -35,6 +71,7 @@ export function LocalitySearchScreen() {
     hasKeyword && isFetched && !isFetching && localities.length === 0;
   const showEmptyState =
     showNoLocality && properties.length === 0;
+  const resultSetKey = `${city}-${keyword.trim().toLowerCase()}`;
 
   function handleSelectLocality(locality: string) {
     Keyboard.dismiss();
@@ -100,49 +137,47 @@ export function LocalitySearchScreen() {
         contentContainerStyle={styles.results}
         showsVerticalScrollIndicator={false}>
         {localities.length > 0 ? (
-          <View style={styles.section}>
-            <Typography variant="text" size="sm" weight="medium" color={palette.textSecondary}>
-              Localities
-            </Typography>
-            {localities.map((item) => (
-              <Pressable
+          <View key={`localities-${resultSetKey}`} style={styles.section}>
+            <Animated.View entering={FadeIn.duration(180)}>
+              <Typography variant="text" size="sm" weight="medium" color={palette.textSecondary}>
+                Localities
+              </Typography>
+            </Animated.View>
+            {localities.map((item, index) => (
+              <SearchResultRow
                 key={item}
+                index={index}
+                label={item}
+                icon="mappin.and.ellipse"
                 onPress={() => handleSelectLocality(item)}
-                style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
-                accessibilityRole="button"
-                accessibilityLabel={`Select ${item}`}>
-                <SymbolView name="mappin.and.ellipse" size={20} tintColor={palette.gray[700]} />
-                <Typography variant="text" size="md" style={styles.resultLabel}>
-                  {item}
-                </Typography>
-              </Pressable>
+                accessibilityLabel={`Select ${item}`}
+              />
             ))}
           </View>
         ) : null}
 
         {properties.length > 0 ? (
-          <View style={styles.section}>
-            <Typography variant="text" size="sm" weight="medium" color={palette.textSecondary}>
-              HelloWorld Properties
-            </Typography>
-            {properties.map((item) => (
-              <Pressable
+          <View key={`properties-${resultSetKey}`} style={styles.section}>
+            <Animated.View entering={FadeIn.duration(180)}>
+              <Typography variant="text" size="sm" weight="medium" color={palette.textSecondary}>
+                HelloWorld Properties
+              </Typography>
+            </Animated.View>
+            {properties.map((item, index) => (
+              <SearchResultRow
                 key={item.id}
+                index={index}
+                label={item.name}
+                icon="building.2"
                 onPress={() => handleSelectProperty(item)}
-                style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${item.name}`}>
-                <SymbolView name="building.2" size={20} tintColor={palette.gray[700]} />
-                <Typography variant="text" size="md" style={styles.resultLabel}>
-                  {item.name}
-                </Typography>
-              </Pressable>
+                accessibilityLabel={`Open ${item.name}`}
+              />
             ))}
           </View>
         ) : null}
 
         {showNoLocality ? (
-          <View style={styles.emptyActions}>
+          <Animated.View entering={FadeIn.duration(200)} style={styles.emptyActions}>
             {showEmptyState ? (
               <Typography variant="text" size="md" color={palette.textSecondary} style={styles.empty}>
                 No results found
@@ -153,7 +188,7 @@ export function LocalitySearchScreen() {
               </Typography>
             )}
             <Button label="Show all properties" onPress={handleShowAllProperties} />
-          </View>
+          </Animated.View>
         ) : null}
 
         {!hasKeyword ? (

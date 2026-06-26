@@ -1,7 +1,7 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback } from 'react';
+import { BackHandler, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
@@ -9,35 +9,53 @@ import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
 import { useBookingDraftStore } from '@/stores/booking-draft-store';
+import { useTenantStore } from '@/stores/tenant-store';
 import { formatBookingAmount, formatBookingMoveInDate } from '@/utils/booking-payment';
+import { resetRootRoute } from '@/utils/navigation-reset';
 
 export function BookingSuccessScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const paymentResult = useBookingDraftStore((state) => state.paymentResult);
   const clearDraft = useBookingDraftStore((state) => state.clearDraft);
   const clearPaymentResult = useBookingDraftStore((state) => state.clearPaymentResult);
+  const fetchProfile = useTenantStore((state) => state.fetchProfile);
 
-  useEffect(() => {
-    if (!paymentResult) {
-      router.replace('/(tabs)/home');
-    }
-  }, [paymentResult, router]);
+  const finishBookingFlow = useCallback(
+    async (href: '/(tabs)/dashboard' | '/move-in-steps') => {
+      clearDraft();
+      clearPaymentResult();
+      await fetchProfile();
+      resetRootRoute(href);
+    },
+    [clearDraft, clearPaymentResult, fetchProfile],
+  );
+
+  const handleGoToDashboard = useCallback(() => {
+    void finishBookingFlow('/(tabs)/dashboard');
+  }, [finishBookingFlow]);
+
+  const handleViewMoveInSteps = useCallback(() => {
+    void finishBookingFlow('/move-in-steps');
+  }, [finishBookingFlow]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!paymentResult) {
+        resetRootRoute('/(tabs)/home');
+        return undefined;
+      }
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        handleGoToDashboard();
+        return true;
+      });
+
+      return () => subscription.remove();
+    }, [handleGoToDashboard, paymentResult]),
+  );
 
   if (!paymentResult) {
     return null;
-  }
-
-  function handleGoToDashboard() {
-    clearDraft();
-    clearPaymentResult();
-    router.replace('/(tabs)/home');
-  }
-
-  function handleViewMoveInSteps() {
-    clearDraft();
-    clearPaymentResult();
-    router.replace('/move-in-steps');
   }
 
   return (
@@ -47,7 +65,7 @@ export function BookingSuccessScreen() {
           onPress={handleGoToDashboard}
           style={styles.backButton}
           accessibilityRole="button"
-          accessibilityLabel="Go back">
+          accessibilityLabel="Go to dashboard">
           <SymbolView name="chevron.left" size={16} weight="semibold" tintColor={palette.gray[800]} />
         </Pressable>
         <Typography variant="text" size="md" weight="bold">

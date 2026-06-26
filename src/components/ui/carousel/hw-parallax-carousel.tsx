@@ -1,7 +1,7 @@
 import { useCallback, useRef, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Carousel, { type ICarouselInstance } from 'react-native-reanimated-carousel';
 import { useSharedValue, type SharedValue } from 'react-native-reanimated';
+import Carousel, { type ICarouselInstance } from 'react-native-reanimated-carousel';
 
 import { CarouselPagination } from '@/components/ui/carousel/carousel-pagination';
 import { configureCarouselPanGesture } from '@/components/ui/carousel/configure-pan-gesture';
@@ -13,7 +13,7 @@ export type HwParallaxCarouselRenderInfo<T> = {
 };
 
 export type HwParallaxModeConfig = {
-  parallaxScrollingOffset?: number;
+parallaxScrollingOffset?: number;
   parallaxScrollingScale?: number;
   parallaxAdjacentItemScale?: number;
 };

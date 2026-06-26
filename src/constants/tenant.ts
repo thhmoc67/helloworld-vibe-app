@@ -23,3 +23,4 @@ export const SUPPORT_CATEGORIES = [
 ] as const;
 
 export const HELP_DESK_PHONE = '8880008888';
+export const HELP_DESK_PHONE_DISPLAY = '888 000 88 88';

@@ -1,14 +1,14 @@
 import type { BookingStatus, MoveInStep } from '@/types/booking-status';
+import type { MoveInBackground } from '@/types/move-in-background';
+import { EMPTY_MOVE_IN_BACKGROUND } from '@/types/move-in-background';
 import type { TenantProfile } from '@/types/tenant';
-
-function isProfileComplete(profile?: TenantProfile | null) {
-  const user = profile?.userInfo;
-  return Boolean(user?.name?.trim() && user?.email?.trim() && user?.gender?.trim());
-}
+import { isMoveInAboutYouComplete } from '@/utils/move-in-background';
 
 export function buildMoveInSteps(
   status: BookingStatus,
   profile?: TenantProfile | null,
+  moveInInterests: string[] = [],
+  moveInBackground: MoveInBackground = EMPTY_MOVE_IN_BACKGROUND,
 ): MoveInStep[] {
   const tokenPaid = profile?.paymentInfo?.isTokenPaid ?? true;
 
@@ -24,16 +24,16 @@ export function buildMoveInSteps(
       title: 'Advance Rent · Security Deposit · Move-in Charges',
       description: 'Complete payment is mandatory before move-in.',
       actionLabel: 'Complete Payment',
-      route: '/(tabs)/payments',
+      route: '/move-in-payment',
       completed: status.payment,
     },
     {
       id: 'personal-profile',
       title: 'A Little About You',
       description: 'Your interests help us build the right community around you.',
-      actionLabel: 'Complete profile',
-      route: '/profile/personal-details',
-      completed: isProfileComplete(profile),
+      actionLabel: 'Continue',
+      route: '/move-in-background',
+      completed: isMoveInAboutYouComplete(moveInBackground, moveInInterests),
     },
     {
       id: 'emergency-contact',
@@ -48,6 +48,7 @@ export function buildMoveInSteps(
       title: 'Document Verification',
       description: "You'll be redirected to our partner portal for KYC Verification",
       actionLabel: 'Verify',
+      route: '/move-in-document-verification',
       completed: status.is_kyc_cleared,
     },
     {
@@ -63,7 +64,7 @@ export function buildMoveInSteps(
       title: 'Move-in Checklist',
       description: 'Review and confirm the amenities in your room.',
       actionLabel: 'Review Amenities',
-      route: '/profile/booking-details',
+      route: '/move-in-checklist',
       completed: status.checklist_status,
     },
     {

@@ -37,43 +37,60 @@ export const MENU_SECTIONS: MenuSection[] = [
   },
 ];
 
-export const TENANT_MENU_SECTIONS: MenuSection[] = [
+export const TENANT_ACCOUNT_ITEMS: MenuItem[] = [
+  { id: 'personal-details', label: 'Personal Details', icon: 'personalDetails' },
   {
-    id: 'account',
-    title: 'Account',
-    items: [
-      { id: 'move-in-steps', label: 'Your Move-in Steps', icon: 'bookingDetails' },
-      { id: 'personal-details', label: 'Personal Details', icon: 'personalDetails' },
-      {
-        id: 'booking-details',
-        label: 'Booking Details & Rental Agreements',
-        icon: 'bookingDetails',
-      },
-      { id: 'bank-details', label: 'Bank Details', icon: 'bankDetails' },
-      { id: 'emergency-contact', label: 'Emergency Contact Details', icon: 'emergencyContact' },
-    ],
+    id: 'booking-details',
+    label: 'Booking Details & Rental Agreements',
+    icon: 'bookingDetails',
   },
-  {
-    id: 'activity',
-    title: 'Activity',
-    items: [
-      { id: 'my-payments', label: 'My Payments', icon: 'myPayments' },
-      { id: 'support', label: 'Support', icon: 'tenantSupport' },
-      { id: 'my-visits', label: 'My Visits', icon: 'tenantMyVisits' },
-      { id: 'my-wishlist', label: 'My Wishlist', icon: 'tenantWishlist' },
-      { id: 'referral', label: 'Referral', icon: 'referral' },
-      { id: 'community-events', label: 'Community Events', icon: 'tenantCommunityEvents' },
-      { id: 'move-out', label: 'Move Out', icon: 'moveOut' },
-    ],
-  },
-  {
-    id: 'more',
-    title: 'More',
-    items: [
-      { id: 'about', label: 'About', icon: 'tenantAbout' },
-      { id: 'privacy-policy', label: 'Privacy Policy', icon: 'tenantPrivacyPolicy' },
-      { id: 'tenancy-policy', label: 'Tenancy Policy', icon: 'tenantTenancyPolicy' },
-      { id: 'logout', label: 'Logout', icon: 'tenantLogout' },
-    ],
-  },
+  { id: 'bank-details', label: 'Bank Details', icon: 'bankDetails' },
+  { id: 'emergency-contact', label: 'Emergency Contact Details', icon: 'emergencyContact' },
 ];
+
+const TENANT_MOVE_IN_STEPS_ITEM: MenuItem = {
+  id: 'move-in-steps',
+  label: 'Your Move-in Steps',
+  icon: 'bookingDetails',
+};
+
+export const TENANT_ACTIVITY_ITEMS: MenuItem[] = [
+  { id: 'my-payments', label: 'My Payments', icon: 'myPayments' },
+  { id: 'support', label: 'Support', icon: 'tenantSupport' },
+  { id: 'my-visits', label: 'My Visits', icon: 'tenantMyVisits' },
+  { id: 'my-wishlist', label: 'My Wishlist', icon: 'tenantWishlist' },
+  { id: 'referral', label: 'Referral', icon: 'referral' },
+  { id: 'community-events', label: 'Community Events', icon: 'tenantCommunityEvents' },
+  { id: 'move-out', label: 'Move Out', icon: 'moveOut' },
+];
+
+export const TENANT_MORE_ITEMS: MenuItem[] = [
+  { id: 'about', label: 'About', icon: 'tenantAbout' },
+  { id: 'privacy-policy', label: 'Privacy Policy', icon: 'tenantPrivacyPolicy' },
+  { id: 'tenancy-policy', label: 'Tenancy Policy', icon: 'tenantTenancyPolicy' },
+  { id: 'logout', label: 'Logout', icon: 'tenantLogout' },
+];
+
+export function buildTenantMenuSections(includeMoveInSteps = false): MenuSection[] {
+  return [
+    {
+      id: 'account',
+      title: 'Account',
+      items: includeMoveInSteps
+        ? [TENANT_MOVE_IN_STEPS_ITEM, ...TENANT_ACCOUNT_ITEMS]
+        : TENANT_ACCOUNT_ITEMS,
+    },
+    {
+      id: 'activity',
+      title: 'Activity',
+      items: TENANT_ACTIVITY_ITEMS,
+    },
+    {
+      id: 'more',
+      title: 'More',
+      items: TENANT_MORE_ITEMS,
+    },
+  ];
+}
+
+export const TENANT_MENU_SECTIONS: MenuSection[] = buildTenantMenuSections();

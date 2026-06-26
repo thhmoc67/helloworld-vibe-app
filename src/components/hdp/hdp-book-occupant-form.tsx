@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { CalendarPickerModal } from '@/components/ui/calendar-picker-modal';
 import { TextField } from '@/components/ui/text-field';
 import { Typography } from '@/components/ui/typography';
-import type { OccupantDetails } from '@/types/booking';
 import palette from '@/constants/palette';
 import { Radius } from '@/constants/theme';
+import type { OccupantDetails } from '@/types/booking';
 import { getDefaultMoveInDate, getLatestMoveInDate } from '@/utils/booking-payment';
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Others'] as const;
@@ -165,7 +165,7 @@ export function HdpBookOccupantForm({
         </Typography>
       ) : null}
 
-      <Button label="Verify Phone Number" onPress={onVerifyPhone} style={styles.cta} />
+      <Button label="Continue" onPress={onVerifyPhone} style={styles.cta} />
 
       <CalendarPickerModal
         visible={calendarOpen}

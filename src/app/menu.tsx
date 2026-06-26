@@ -1,24 +1,31 @@
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 
 import { MenuSectionCard } from '@/components/menu/menu-section-card';
 import { ProfileSummary } from '@/components/menu/profile-summary';
 import { Typography } from '@/components/ui/typography';
-import { MENU_SECTIONS, TENANT_MENU_SECTIONS } from '@/constants/menu';
+import { buildTenantMenuSections, MENU_SECTIONS } from '@/constants/menu';
 import palette from '@/constants/palette';
+import { useBookingStatus } from '@/queries/use-booking-status';
 import { queryClient } from '@/queries/query-client';
 import { useAuthStore } from '@/stores/auth-store';
-import { useIsTenant, useTenantProfile, useTenantStore } from '@/stores/tenant-store';
+import {
+  useIsTenant,
+  useTenantProfile,
+  useTenantStore,
+} from '@/stores/tenant-store';
 import {
   getMenuExternalUrl,
   getMenuRoute,
   isTabMenuRoute,
 } from '@/utils/menu-navigation';
+import { buildMoveInSteps, partitionMoveInSteps } from '@/utils/move-in-steps';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
@@ -28,12 +35,39 @@ export default function MenuScreen() {
   const clearSession = useAuthStore((state) => state.clearSession);
   const isTenant = useIsTenant();
   const tenantProfile = useTenantProfile();
+  const moveInInterests = useTenantStore((state) => state.moveInInterests);
+  const moveInBackground = useTenantStore((state) => state.moveInBackground);
+  const { data: bookingStatus } = useBookingStatus();
 
   const propertyLabel = [tenantProfile?.propertyInfo?.address?.flatNo, tenantProfile?.propertyInfo?.name]
     .filter(Boolean)
     .join(' · ');
 
-  const sections = isTenant ? TENANT_MENU_SECTIONS : MENU_SECTIONS;
+  const sections = useMemo(() => {
+    if (!isTenant) {
+      return MENU_SECTIONS;
+    }
+
+    const moveInSteps = buildMoveInSteps(
+      bookingStatus ?? {},
+      tenantProfile,
+      moveInInterests,
+      moveInBackground,
+    );
+    const { pending } = partitionMoveInSteps(moveInSteps);
+
+    return buildTenantMenuSections(pending.length > 0);
+  }, [bookingStatus, isTenant, moveInBackground, moveInInterests, tenantProfile]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isTenant) {
+        return;
+      }
+
+      void useTenantStore.getState().fetchProfile();
+    }, [isTenant]),
+  );
 
   const handleLogout = useCallback(() => {
     clearSession();
@@ -42,39 +76,61 @@ export default function MenuScreen() {
     router.replace('/login');
   }, [clearSession, router]);
 
-  async function openExternalUrl(url: string) {
+  const openExternalUrl = useCallback(async (url: string) => {
     await WebBrowser.openBrowserAsync(url, {
       toolbarColor: palette.white,
       controlsColor: palette.black,
       showTitle: true,
       enableBarCollapsing: false,
     });
-  }
+  }, []);
 
-  function handleItemPress(itemId: string) {
-    if (itemId === 'logout') {
-      handleLogout();
-      return;
-    }
+  const handleItemPress = useCallback(
+    (itemId: string) => {
+      if (itemId === 'logout') {
+        handleLogout();
+        return;
+      }
 
-    const externalUrl = getMenuExternalUrl(itemId);
-    if (externalUrl) {
-      void openExternalUrl(externalUrl);
-      return;
-    }
+      const externalUrl = getMenuExternalUrl(itemId);
+      if (externalUrl) {
+        void openExternalUrl(externalUrl);
+        return;
+      }
 
-    const route = getMenuRoute(itemId, isTenant);
-    if (!route) {
-      return;
-    }
+      const route = getMenuRoute(itemId, isTenant);
+      if (!route) {
+        return;
+      }
 
-    if (isTabMenuRoute(String(route))) {
-      router.replace(route);
-      return;
-    }
+      if (isTabMenuRoute(String(route))) {
+        router.replace(route);
+        return;
+      }
 
-    router.push(route);
-  }
+      router.push(route);
+    },
+    [handleLogout, isTenant, openExternalUrl, router],
+  );
+
+  const sectionCards = useMemo(() => {
+    let itemIndexOffset = 0;
+
+    return sections.map((section, sectionIndex) => {
+      const card = (
+        <MenuSectionCard
+          key={section.id}
+          section={section}
+          sectionIndex={sectionIndex}
+          itemIndexOffset={itemIndexOffset}
+          onItemPress={handleItemPress}
+        />
+      );
+
+      itemIndexOffset += section.items.length;
+      return card;
+    });
+  }, [handleItemPress, sections]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -94,17 +150,20 @@ export default function MenuScreen() {
         <Typography variant="text" size="lg" weight="bold" style={styles.headerTitle}>
           Profile
         </Typography>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}>
-        <ProfileSummary
-          mobile={mobile}
-          name={isTenant ? tenantProfile?.userInfo?.name : undefined}
-          propertyLabel={isTenant ? propertyLabel : undefined}
-        />
+        <Animated.View entering={FadeInDown.duration(220)}>
+          <ProfileSummary
+            mobile={mobile}
+            name={isTenant ? tenantProfile?.userInfo?.name : undefined}
+            propertyLabel={isTenant ? propertyLabel : undefined}
+          />
+        </Animated.View>
 
         {__DEV__ && !isTenant ? (
           <Pressable
@@ -117,9 +176,7 @@ export default function MenuScreen() {
           </Pressable>
         ) : null}
 
-        {sections.map((section) => (
-          <MenuSectionCard key={section.id} section={section} onItemPress={handleItemPress} />
-        ))}
+        {sectionCards}
 
         <Text style={styles.footer}>
           V {APP_VERSION} | Made with <Text style={styles.heart}>❤️</Text> in Bengaluru
@@ -141,6 +198,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 8,
   },
+  headerSpacer: {
+    width: 40,
+  },
   backButton: {
     width: 40,
     height: 40,
@@ -158,6 +218,8 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   headerTitle: {
+    flex: 1,
+    textAlign: 'center',
     color: palette.black,
   },
   scroll: {

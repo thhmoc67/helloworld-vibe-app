@@ -5,12 +5,14 @@ import { StyleSheet, View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
+import { useTenantStore } from '@/stores/tenant-store';
 
 type PaymentSuccessViewProps = {
   isInvoicePayment?: boolean;
+  isMoveInPayment?: boolean;
 };
 
-export function PaymentSuccessView({ isInvoicePayment }: PaymentSuccessViewProps) {
+export function PaymentSuccessView({ isInvoicePayment, isMoveInPayment }: PaymentSuccessViewProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -20,6 +22,17 @@ export function PaymentSuccessView({ isInvoicePayment }: PaymentSuccessViewProps
       router.replace('/(tabs)/payments');
       return;
     }
+
+    if (isMoveInPayment) {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['booking-status'] }),
+        queryClient.invalidateQueries({ queryKey: ['tenant-invoices'] }),
+        useTenantStore.getState().fetchProfile(),
+      ]);
+      router.replace('/move-in-steps');
+      return;
+    }
+
     router.back();
   }
 

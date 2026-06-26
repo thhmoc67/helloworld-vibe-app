@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SymbolView } from 'expo-symbols';
 
 import { ProfileIcon } from '@/components/profile-icon';
@@ -6,13 +7,22 @@ import { Typography } from '@/components/ui/typography';
 import type { MenuItem } from '@/constants/menu';
 import palette from '@/constants/palette';
 
+const ROW_ENTER_MS = 220;
+const ROW_STAGGER_MS = 40;
+
 type MenuRowProps = {
   item: MenuItem;
   onPress: () => void;
   isLast?: boolean;
+  index?: number;
+  animateOnMount?: boolean;
 };
 
-export function MenuRow({ item, onPress, isLast }: MenuRowProps) {
+function MenuRowContent({
+  item,
+  onPress,
+  isLast,
+}: Pick<MenuRowProps, 'item' | 'onPress' | 'isLast'>) {
   return (
     <Pressable
       onPress={onPress}
@@ -20,18 +30,40 @@ export function MenuRow({ item, onPress, isLast }: MenuRowProps) {
       accessibilityRole="button"
       accessibilityLabel={item.label}>
       <View style={styles.leading}>
-        <ProfileIcon name={item.icon} size={22} color={palette.gray[800]} />
-        <Typography variant="text" size="md" weight="medium" style={styles.label}>
+        <View style={styles.iconWrap}>
+          <ProfileIcon name={item.icon} size={22} color={palette.gray[800]} />
+        </View>
+        <Typography variant="text" size="md" weight="medium" style={styles.label} numberOfLines={2}>
           {item.label}
         </Typography>
       </View>
-      <SymbolView
-        name="chevron.right"
-        size={14}
-        weight="semibold"
-        tintColor={palette.gray[400]}
-      />
+      <View style={styles.chevronWrap}>
+        <SymbolView
+          name="chevron.right"
+          size={14}
+          weight="semibold"
+          tintColor={palette.gray[400]}
+        />
+      </View>
     </Pressable>
+  );
+}
+
+export function MenuRow({
+  item,
+  onPress,
+  isLast,
+  index = 0,
+  animateOnMount = true,
+}: MenuRowProps) {
+  if (!animateOnMount) {
+    return <MenuRowContent item={item} onPress={onPress} isLast={isLast} />;
+  }
+
+  return (
+    <Animated.View entering={FadeInDown.duration(ROW_ENTER_MS).delay(index * ROW_STAGGER_MS)}>
+      <MenuRowContent item={item} onPress={onPress} isLast={isLast} />
+    </Animated.View>
   );
 }
 
@@ -39,10 +71,10 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
     minHeight: 56,
+    gap: 12,
   },
   rowPressed: {
     backgroundColor: palette.gray[50],
@@ -52,12 +84,28 @@ const styles = StyleSheet.create({
     borderBottomColor: palette.gray[200],
   },
   leading: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
+    minWidth: 0,
+  },
+  iconWrap: {
+    width: 22,
+    height: 22,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
+    flex: 1,
     color: palette.gray[900],
+  },
+  chevronWrap: {
+    width: 16,
+    height: 16,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

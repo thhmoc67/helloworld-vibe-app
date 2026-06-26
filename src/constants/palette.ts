@@ -139,4 +139,7 @@ export default {
   // Home screen background gradient (Figma: #252B37 → #3B4760, top to bottom)
   homeGradientTop: gray[800],
   homeGradientBottom: '#3B4760',
+  // HDP vibe match card (Figma linear gradients)
+  vibeMatchCardGradientStart: '#D2F0FE',
+  vibeMatchCardGradientEnd: '#E9D7FE',
 } as const;

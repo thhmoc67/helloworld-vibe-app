@@ -2,9 +2,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Linking,
-  Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,15 +10,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RaiseRequestSheet } from '@/components/tenant/raise-request-sheet';
+import { HelpDeskCard } from '@/components/support/help-desk-card';
 import { SupportTicketCard } from '@/components/tenant/support-ticket-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SegmentedTabToggle } from '@/components/ui/segmented-tab-toggle';
+import { SwipeableTabPager } from '@/components/ui/swipeable-tab-pager';
 import { Typography } from '@/components/ui/typography';
-import { HELP_DESK_PHONE } from '@/constants/tenant';
 import palette from '@/constants/palette';
-import { TAB_SCREEN_EXTRA_PADDING } from '@/constants/tab-bar';
-import { Radius } from '@/constants/theme';
+import { TAB_BAR_HEIGHT, TAB_SCREEN_EXTRA_PADDING } from '@/constants/tab-bar';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { useSupportTickets } from '@/queries/use-support-tickets';
 import { postCreateTicket } from '@/api/tickets';
@@ -29,6 +26,10 @@ import { useTenantProfile } from '@/stores/tenant-store';
 import { isActiveTicket } from '@/utils/tenant-format';
 
 type SupportTab = 'active' | 'resolved';
+
+const SUPPORT_TABS: SupportTab[] = ['active', 'resolved'];
+const FAB_HEIGHT = 52;
+const FAB_GAP = 12;
 
 export function TenantSupportScreen() {
   const insets = useSafeAreaInsets();
@@ -39,14 +40,8 @@ export function TenantSupportScreen() {
   const [tab, setTab] = useState<SupportTab>('active');
   const [sheetVisible, setSheetVisible] = useState(false);
 
-  const filteredTickets = (tickets ?? []).filter((ticket) =>
-    tab === 'active' ? isActiveTicket(ticket.status) : !isActiveTicket(ticket.status),
-  );
-
-  function callHelpDesk() {
-    const url = Platform.OS === 'android' ? `tel:${HELP_DESK_PHONE}` : `telprompt:${HELP_DESK_PHONE}`;
-    Linking.openURL(url);
-  }
+  const fabBottom = insets.bottom + TAB_BAR_HEIGHT + FAB_GAP;
+  const scrollBottomPadding = tabBarInset + TAB_SCREEN_EXTRA_PADDING + FAB_HEIGHT + FAB_GAP;
 
   async function handleCreateTicket(payload: { category: string; description: string }) {
     await postCreateTicket({
@@ -58,38 +53,16 @@ export function TenantSupportScreen() {
     await queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
   }
 
-  return (
-    <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Typography variant="text" size="lg" weight="medium">
-          Support
-        </Typography>
-      </View>
+  function renderTabContent(tabId: SupportTab) {
+    const filteredTickets = (tickets ?? []).filter((ticket) =>
+      tabId === 'active' ? isActiveTicket(ticket.status) : !isActiveTicket(ticket.status),
+    );
 
+    return (
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: tabBarInset + TAB_SCREEN_EXTRA_PADDING + 72 }]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPadding }]}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
         showsVerticalScrollIndicator={false}>
-        <SegmentedTabToggle
-          value={tab}
-          onChange={setTab}
-          tabs={[
-            { id: 'active', label: 'Active Tickets' },
-            { id: 'resolved', label: 'Resolved Tickets' },
-          ]}
-        />
-
-        <View style={styles.helpDesk}>
-          <Typography variant="label" size="xs" color={palette.gray[700]}>
-            Help desk · {HELP_DESK_PHONE.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')}
-          </Typography>
-          <Pressable onPress={callHelpDesk} accessibilityRole="button">
-            <Typography variant="label" size="xs" weight="medium" color={palette.lime[700]}>
-              Call now →
-            </Typography>
-          </Pressable>
-        </View>
-
         {isLoading ? (
           <ActivityIndicator color={palette.lime[700]} style={styles.loader} />
         ) : filteredTickets.length > 0 ? (
@@ -100,19 +73,44 @@ export function TenantSupportScreen() {
           </View>
         ) : (
           <EmptyState
-            title={tab === 'active' ? 'No active tickets yet' : 'No resolved tickets yet'}
+            title={tabId === 'active' ? 'No active tickets yet' : 'No resolved tickets yet'}
             subtitle={
-              tab === 'active'
+              tabId === 'active'
                 ? 'Raise a request and our team will help you out.'
                 : 'Resolved tickets will appear here once closed.'
             }
-            actionLabel={tab === 'active' ? 'Raise New Request' : undefined}
-            onAction={tab === 'active' ? () => setSheetVisible(true) : undefined}
           />
         )}
       </ScrollView>
+    );
+  }
 
-      <View style={[styles.fabWrap, { bottom: tabBarInset }]}>
+  return (
+    <View style={styles.root}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Typography variant="text" size="lg" weight="medium">
+          Support
+        </Typography>
+      </View>
+
+      <View style={styles.controls}>
+        <SegmentedTabToggle
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { id: 'active', label: 'Active Tickets' },
+            { id: 'resolved', label: 'Resolved Tickets' },
+          ]}
+        />
+
+        <HelpDeskCard />
+      </View>
+
+      <SwipeableTabPager tabs={SUPPORT_TABS} value={tab} onChange={setTab}>
+        {renderTabContent}
+      </SwipeableTabPager>
+
+      <View style={[styles.fabWrap, { bottom: fabBottom }]}>
         <Button label="Raise New Request" onPress={() => setSheetVisible(true)} style={styles.fab} />
       </View>
 
@@ -135,19 +133,17 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     backgroundColor: palette.white,
   },
-  scroll: {
+  controls: {
     paddingHorizontal: 20,
     paddingTop: 16,
+    paddingBottom: 12,
     gap: 16,
+    backgroundColor: palette.gray[50],
   },
-  helpDesk: {
-    backgroundColor: palette.white,
-    borderRadius: Radius.md,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    flexGrow: 1,
   },
   list: {
     gap: 12,

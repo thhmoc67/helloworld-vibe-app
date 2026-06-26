@@ -1,6 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { WishlistHeartButton } from '@/components/wishlist/wishlist-heart-button';
 import { Typography } from '@/components/ui/typography';
 import palette from '@/constants/palette';
 
@@ -31,17 +32,12 @@ export function HdpPropertyHeader({
         <Typography variant="text" size="xl" weight="bold" style={styles.name}>
           {name}
         </Typography>
-        <Pressable
+        <WishlistHeartButton
+          isFavorite={isFavorite}
+          inactiveColor={palette.lime[600]}
+          activeColor={palette.red[500]}
           onPress={onFavoritePress}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={isFavorite ? 'Remove from wishlist' : 'Add to wishlist'}>
-          <SymbolView
-            name={isFavorite ? 'heart.fill' : 'heart'}
-            size={20}
-            tintColor={isFavorite ? palette.red[500] : palette.lime[600]}
-          />
-        </Pressable>
+        />
       </View>
 
       {genderLabel ? (
